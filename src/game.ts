@@ -797,7 +797,8 @@ export const handleCanvasClick = (state: GameState, x: number, y: number, canvas
         internalY > z.y - z.size * 1.5 && internalY < z.y + z.size * 0.5) {
 
       const isCrit = Math.random() < 0.05;
-      const damage = isCrit ? state.clickDamage * 2 : state.clickDamage;
+      const baseClickDamage = state.plant.baseDamage * state.plant.damageMultiplier * 2;
+      const damage = isCrit ? baseClickDamage * 2 : baseClickDamage;
       z.hp -= damage;
       hitZombie = true;
 
@@ -849,7 +850,8 @@ export const handleCanvasClick = (state: GameState, x: number, y: number, canvas
   }
 
   if (!hitZombie) {
-    const reward = state.clickDamage * 0.1 * state.energyMultiplier;
+    const baseClickDamage = state.plant.baseDamage * state.plant.damageMultiplier * 2;
+    const reward = baseClickDamage * 0.1 * state.energyMultiplier;
     state.energy += reward;
     state.totalEnergyGenerated += reward;
     state.floatingTexts.push({
@@ -941,7 +943,6 @@ export const buyUpgrade = (state: GameState, type: string) => {
     switch (type) {
       case 'damage': state.plant.damageMultiplier += 0.5; break;
       case 'speed': state.plant.attackSpeedMultiplier += 0.1; break;
-      case 'click': state.clickDamage += 2 + state.upgrades.clickLevel; break;
       case 'energy': state.energyMultiplier += 0.5; break;
     }
   }

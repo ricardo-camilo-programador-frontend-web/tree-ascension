@@ -450,18 +450,6 @@ export default function App() {
                   colorClass="from-emerald-500/20 to-teal-500/20"
                 />
                 <UpgradeButton
-                  icon={<MousePointer2 className="w-6 h-6 text-purple-400" />}
-                  title={t[lang].clickDamage}
-                  level={uiState.upgrades.clickLevel}
-                  cost={getUpgradeCost('click', uiState.upgrades.clickLevel, uiState)}
-                  canAfford={uiState.energy >= getUpgradeCost('click', uiState.upgrades.clickLevel, uiState)}
-                  onClick={() => handleBuy('click')}
-                  onIconClick={() => handleSkillInfo('click')}
-                  formatNumber={formatNumber}
-                  lang={lang}
-                  colorClass="from-purple-500/20 to-fuchsia-500/20"
-                />
-                <UpgradeButton
                   icon={<Zap className="w-6 h-6 text-yellow-400" />}
                   title={t[lang].energyMultiplier}
                   level={uiState.upgrades.energyLevel}
