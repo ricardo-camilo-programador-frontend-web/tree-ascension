@@ -1,4 +1,5 @@
 import { playShootSound, playHitSound, playDeathSound, playSunSound, playSunBurstSound, playPortalSound } from './audio';
+import { formatNumber } from './utils/number';
 
 export const INTERNAL_W = 1024;
 export const INTERNAL_H = 576;
@@ -20,6 +21,13 @@ export interface Zombie {
   size: number;
   wobbleOffset: number;
   hitTimer?: number;
+  slowTimer?: number;
+  slowAmount?: number;
+  poisonTimer?: number;
+  poisonDamage?: number;
+  poisonTicks?: number;
+  burnTimer?: number;
+  burnDamage?: number;
 }
 
 export interface Projectile {
@@ -88,8 +96,23 @@ export interface SunBurst {
 
 export interface GameState {
   energy: number;
-  totalEnergyGenerated: number;
   wave: number;
+  resets: number;
+  prestige: {
+    points: number;
+    totalPoints: number;
+    upgrades: {
+      soulRoots: number;
+      ancientSun: number;
+      evolutionMemory: number;
+      eternalGrowth: number;
+    };
+  };
+  stats: {
+    totalEnergyGenerated: number;
+    enemiesKilled: number;
+    wavesCompleted: number;
+  };
   plant: {
     level: number;
     stage: number;
@@ -102,6 +125,9 @@ export interface GameState {
     maxHp: number;
     evolutionProgress: number;
   };
+  playerHealth: number;
+  maxPlayerHealth: number;
+  enemiesKilledForHeal: number;
   clickDamage: number;
   energyMultiplier: number;
 
@@ -136,27 +162,50 @@ export interface GameState {
     energyLevel: number;
     evolutionSpeedLevel: number;
     grassLevel: number;
+    grassEvolutions: string[];
   };
 
   abilities: {
     sunBurst: { level: number; cooldown: number; maxCooldown: number; active: boolean; evolutions: string[] };
     rootEntangle: { level: number; cooldown: number; maxCooldown: number; active: boolean; evolutions: string[] };
     poisonCloud: { level: number; cooldown: number; maxCooldown: number; active: boolean; evolutions: string[] };
+    solGenerator: { level: number; cooldown: number; maxCooldown: number; active: boolean; evolutions: string[] };
   };
 
   modal: {
     isOpen: boolean;
-    type: 'skillEvolution' | null;
+    type: 'skillEvolution' | 'skillInfo' | null;
     skillId: string | null;
     options: { id: string; name: string; description: string }[];
+  };
+  settings: {
+    lowPerformance: boolean;
   };
   lastTimestamp: number;
 }
 
+export const calculateMaxHp = (level: number): number => {
+  return 10000 + (Math.floor(level / 50) * 10000);
+};
+
 export const createInitialState = (): GameState => ({
   energy: 0,
-  totalEnergyGenerated: 0,
-  wave: 1,
+  resets: 0,
+  prestige: {
+    points: 0,
+    totalPoints: 0,
+    upgrades: {
+      soulRoots: 0,
+      ancientSun: 0,
+      evolutionMemory: 0,
+      eternalGrowth: 0,
+    },
+  },
+  stats: {
+    totalEnergyGenerated: 0,
+    enemiesKilled: 0,
+    wavesCompleted: 0,
+  },
   plant: {
     level: 1,
     stage: 1,
@@ -169,8 +218,12 @@ export const createInitialState = (): GameState => ({
     maxHp: 100,
     evolutionProgress: 0,
   },
+  playerHealth: 10000,
+  maxPlayerHealth: 10000,
+  enemiesKilledForHeal: 0,
   clickDamage: 1,
   energyMultiplier: 1,
+  wave: 1,
   zombies: [],
   projectiles: [],
   particles: [],
@@ -199,11 +252,13 @@ export const createInitialState = (): GameState => ({
     energyLevel: 1,
     evolutionSpeedLevel: 1,
     grassLevel: 0,
+    grassEvolutions: [],
   },
   abilities: {
     sunBurst: { level: 0, cooldown: 0, maxCooldown: 30, active: false, evolutions: [] },
     rootEntangle: { level: 0, cooldown: 0, maxCooldown: 45, active: false, evolutions: [] },
     poisonCloud: { level: 0, cooldown: 0, maxCooldown: 60, active: false, evolutions: [] },
+    solGenerator: { level: 0, cooldown: 0, maxCooldown: 0, active: false, evolutions: [] },
   },
   modal: {
     isOpen: false,
@@ -211,84 +266,49 @@ export const createInitialState = (): GameState => ({
     skillId: null,
     options: [],
   },
+  settings: {
+    lowPerformance: false,
+  },
   lastTimestamp: Date.now(),
 });
 
-const generateHash = (str: string) => {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // Convert to 32bit integer
-  }
-  return hash.toString(16);
+
+export const calculatePrestigePoints = (totalEnergy: number): number => {
+  return Math.floor(Math.sqrt(totalEnergy / 1e6));
 };
 
-const SECRET_SALT = "idle_td_secret_salt_2026";
+export const resetGame = (state: GameState): boolean => {
+  if (state.wave < 50 && state.plant.level < 50) return false;
 
-export const saveGame = (state: GameState) => {
-  try {
-    const dataStr = JSON.stringify(state);
-    const hash = generateHash(dataStr + SECRET_SALT);
-    const saveObj = { data: state, hash };
-    localStorage.setItem('idleTD_save', JSON.stringify(saveObj));
-  } catch (e) {
-    console.error('Failed to save game', e);
-  }
+  const currentResets = state.resets + 1;
+  const startingEnergy = currentResets * 1000;
+  
+  // Calculate prestige points (keep existing logic if needed, or replace)
+  const points = calculatePrestigePoints(state.stats.totalEnergyGenerated);
+  state.prestige.points += points;
+  state.prestige.totalPoints += points;
+  
+  // Reset game state
+  const newState = createInitialState();
+  
+  // Keep prestige, stats, and resets
+  newState.prestige = state.prestige;
+  newState.stats = state.stats;
+  newState.resets = currentResets;
+  newState.energy = startingEnergy;
+  
+  // Recalculate Max HP based on reset level (which is 1)
+  newState.maxPlayerHealth = calculateMaxHp(newState.plant.level);
+  newState.playerHealth = newState.maxPlayerHealth;
+
+  // Apply permanent upgrades
+  newState.plant.baseDamage *= (1 + state.prestige.upgrades.soulRoots * 0.1);
+  newState.energyMultiplier *= (1 + state.prestige.upgrades.ancientSun * 0.15);
+  // ... apply other upgrades
+  
+  Object.assign(state, newState);
+  return true;
 };
-
-export const loadGame = (): GameState | null => {
-  try {
-    const saved = localStorage.getItem('idleTD_save');
-    if (saved) {
-      const parsedObj = JSON.parse(saved);
-      
-      // Handle old saves (without hash)
-      let parsed = parsedObj;
-      if (parsedObj.data && parsedObj.hash) {
-        const dataStr = JSON.stringify(parsedObj.data);
-        const expectedHash = generateHash(dataStr + SECRET_SALT);
-        if (expectedHash !== parsedObj.hash) {
-          console.warn('Save file corrupted or tampered with!');
-          return null;
-        }
-        parsed = parsedObj.data;
-      }
-
-      // Validation
-      if (typeof parsed.energy !== 'number' || parsed.energy < 0 || isNaN(parsed.energy)) parsed.energy = 0;
-      if (parsed.wave < 1 || isNaN(parsed.wave)) parsed.wave = 1;
-
-      // Ensure new properties exist in old saves
-      if (!parsed.upgrades.grassLevel) parsed.upgrades.grassLevel = 0;
-      if (!parsed.timers.lastGrassTick) parsed.timers.lastGrassTick = 0;
-      if (!parsed.timers.lastSunSpawn) parsed.timers.lastSunSpawn = 0;
-      if (!parsed.suns) parsed.suns = [];
-      if (!parsed.coins) parsed.coins = [];
-      if (!parsed.sunBursts) parsed.sunBursts = [];
-      if (!parsed.abilities) {
-        parsed.abilities = {
-          sunBurst: { level: 0, cooldown: 0, maxCooldown: 30, active: false, evolutions: [] },
-          rootEntangle: { level: 0, cooldown: 0, maxCooldown: 45, active: false, evolutions: [] },
-          poisonCloud: { level: 0, cooldown: 0, maxCooldown: 60, active: false, evolutions: [] },
-        };
-      } else {
-        if (!parsed.abilities.sunBurst.evolutions) parsed.abilities.sunBurst.evolutions = [];
-        if (!parsed.abilities.rootEntangle.evolutions) parsed.abilities.rootEntangle.evolutions = [];
-        if (!parsed.abilities.poisonCloud.evolutions) parsed.abilities.poisonCloud.evolutions = [];
-      }
-      if (!parsed.modal) {
-        parsed.modal = { isOpen: false, type: null, skillId: null, options: [] };
-      }
-      if (!parsed.lastTimestamp) parsed.lastTimestamp = Date.now();
-      return parsed;
-    }
-  } catch (e) {
-    console.error('Failed to load game', e);
-  }
-  return null;
-};
-
 
 const resetWave = (state: GameState) => {
   state.zombies = [];
@@ -306,9 +326,9 @@ const spawnZombie = (state: GameState) => {
 
   playPortalSound();
 
-  const baseHp = 10 * Math.pow(1.2, state.wave);
-  const baseReward = 2 * Math.pow(1.15, state.wave);
-  const baseSpeed = 30 + state.wave * 2;
+  const baseHp = 10 * Math.pow(1.18, state.wave - 1);
+  const baseReward = 2 * Math.pow(1.12, state.wave - 1);
+  const baseSpeed = 15 + state.wave * 0.5;
 
   let type: ZombieType = 'basic';
   const rand = Math.random();
@@ -356,6 +376,8 @@ const spawnZombie = (state: GameState) => {
   });
 };
 
+  // Remove the old formatNumber function
+/*
 export const formatNumber = (num: number): string => {
   if (num === 0) return '0';
   if (num >= 1e15) return num.toExponential(2).replace('e+', 'e');
@@ -365,11 +387,110 @@ export const formatNumber = (num: number): string => {
   if (num >= 1e3) return (num / 1e3).toFixed(2) + 'K';
   return Math.floor(num).toLocaleString();
 };
+*/
 
 export const getCooldownForLevel = (baseCooldown: number, level: number) => {
+  if (baseCooldown === 0) return 0;
   // Reduces cooldown by ~1% per level, with diminishing returns, capped at 50% reduction
   const reduction = 1 - (0.5 * (1 - Math.exp(-0.01 * level)));
-  return baseCooldown * reduction;
+  return Math.max(1, baseCooldown * reduction);
+};
+
+export const calculatePlantDamage = (state: GameState): number => {
+  let damage = state.plant.baseDamage * state.plant.damageMultiplier;
+  
+  // Apply Prestige Bonus (Soul Roots)
+  if (state.prestige.upgrades.soulRoots > 0) {
+    damage *= (1 + state.prestige.upgrades.soulRoots * 0.1);
+  }
+
+  return damage;
+};
+
+export const calculateClickDamage = (state: GameState, isCrit: boolean): number => {
+  const baseDamage = calculatePlantDamage(state) * 2 * Math.pow(1.15, state.upgrades.clickLevel - 1);
+  return isCrit ? baseDamage * 2 : baseDamage;
+};
+
+export const calculateSkillDamage = (state: GameState, skillId: string): number => {
+  const baseDamage = calculatePlantDamage(state);
+  
+  switch (skillId) {
+    case 'sunBurst':
+      let sbDamage = baseDamage * 5 * Math.pow(1.15, state.abilities.sunBurst.level - 1);
+      if (state.abilities.sunBurst.evolutions.includes('double_burst')) sbDamage *= 1.5;
+      return sbDamage;
+      
+    case 'poisonCloud':
+      return baseDamage * 0.5 * Math.pow(1.15, state.abilities.poisonCloud.level - 1);
+      
+    case 'grass':
+      let grassDamage = 5 * Math.pow(1.15, state.upgrades.grassLevel);
+      if (state.upgrades.grassEvolutions.includes('poison_grass')) grassDamage *= 1.5;
+      return grassDamage;
+      
+    case 'rootEntangle':
+      // Root entangle damage over time evolution
+      if (state.abilities.rootEntangle.evolutions.includes('damage_over_time')) {
+        return baseDamage * 0.2;
+      }
+      return 0;
+      
+    default:
+      return 0;
+  }
+};
+
+export const applyDamageToZombie = (state: GameState, zombie: Zombie, amount: number, isCrit: boolean = false) => {
+  if (amount <= 0 || isNaN(amount)) return;
+  
+  zombie.hp -= amount;
+  if (zombie.hp < 0) zombie.hp = 0;
+  
+  // Visual feedback
+  state.floatingTexts.push({
+    id: Math.random().toString(),
+    text: formatNumber(amount),
+    x: zombie.x, 
+    y: zombie.y - zombie.size - 10,
+    life: 0, 
+    maxLife: 0.8,
+    color: isCrit ? '#ef4444' : '#ffffff',
+    isCrit
+  });
+  
+  if (isCrit) {
+    // Extra particles for crit
+    for (let k = 0; k < 5; k++) {
+      state.particles.push({
+        id: Math.random().toString(),
+        x: zombie.x, y: zombie.y,
+        vx: (Math.random() - 0.5) * 300,
+        vy: (Math.random() - 0.5) * 300,
+        life: 0, maxLife: 0.4,
+        color: '#ef4444', size: 4,
+      });
+    }
+  }
+};
+
+export const applyDamageToPlayer = (state: GameState, amount: number) => {
+  if (amount <= 0 || isNaN(amount)) return;
+
+  state.playerHealth -= amount;
+  if (state.playerHealth < 0) state.playerHealth = 0;
+
+  // Visual feedback for player damage
+  state.floatingTexts.push({
+    id: Math.random().toString(),
+    text: `-${formatNumber(amount)}`,
+    x: 150, // Player position (approx)
+    y: INTERNAL_H - 150,
+    life: 0,
+    maxLife: 1.0,
+    color: '#ef4444',
+    isCrit: true
+  });
 };
 
 export const updateGame = (state: GameState, _unused_dt: number) => {
@@ -409,6 +530,19 @@ const runUpdateStep = (state: GameState, dt: number) => {
     if (state.plant.stage > 5) {
       state.plant.stage = 1;
       state.plant.level++;
+      
+      // Recalculate Max HP on Level Up
+      const oldMaxHp = state.maxPlayerHealth;
+      const newMaxHp = calculateMaxHp(state.plant.level);
+      state.maxPlayerHealth = newMaxHp;
+
+      // Adjust current HP
+      if (state.playerHealth >= oldMaxHp) {
+        state.playerHealth = newMaxHp;
+      } else {
+        const ratio = state.playerHealth / oldMaxHp;
+        state.playerHealth = Math.floor(newMaxHp * ratio);
+      }
     }
     state.plant.baseDamage *= 2;
     state.plant.maxHp *= 2;
@@ -433,23 +567,27 @@ const runUpdateStep = (state: GameState, dt: number) => {
   if (state.abilities.poisonCloud.cooldown > 0) state.abilities.poisonCloud.cooldown -= dt;
 
   // Auto-activate abilities if off cooldown and level > 0
-  if (state.abilities.sunBurst.level > 0 && state.abilities.sunBurst.cooldown <= 0 && state.zombies.length > 0) {
+  
+    if (state.abilities.sunBurst.level > 0 && state.abilities.sunBurst.cooldown <= 0 && state.zombies.length > 0) {
     state.abilities.sunBurst.cooldown = getCooldownForLevel(state.abilities.sunBurst.maxCooldown, state.abilities.sunBurst.level);
     
-    let damage = state.plant.baseDamage * state.plant.damageMultiplier * 5 * state.abilities.sunBurst.level;
+    let damage = calculateSkillDamage(state, 'sunBurst');
     let radius = 1.0;
     
     if (state.abilities.sunBurst.evolutions.includes('larger_radius')) radius = 1.5;
-    if (state.abilities.sunBurst.evolutions.includes('double_burst')) damage *= 1.5; // Simplified double burst
 
     state.sunBursts.push({ id: Math.random().toString(), x: 150, y: INTERNAL_H - 100, life: 0, maxLife: radius });
     playSunBurstSound();
 
     state.zombies.forEach(z => {
-      z.hp -= damage;
+      // Only hit enemies on screen (plus a bit of buffer)
+      if (z.x > INTERNAL_W + 100) return;
+
+      applyDamageToZombie(state, z, damage);
+      
       if (state.abilities.sunBurst.evolutions.includes('lingering_damage')) {
-        // Apply a simple DoT effect by adding a floating text and dealing extra damage
-        z.hp -= damage * 0.2;
+        z.burnTimer = 3;
+        z.burnDamage = damage * 0.1; // 10% damage per second for 3 seconds
       }
       for (let k = 0; k < 5; k++) {
         state.particles.push({
@@ -463,9 +601,16 @@ const runUpdateStep = (state: GameState, dt: number) => {
 
   if (state.abilities.rootEntangle.level > 0 && state.abilities.rootEntangle.cooldown <= 0 && state.zombies.length > 0) {
     state.abilities.rootEntangle.cooldown = getCooldownForLevel(state.abilities.rootEntangle.maxCooldown, state.abilities.rootEntangle.level);
+    
+    let duration = 5;
+    let slowAmount = 0.5;
+    if (state.abilities.rootEntangle.evolutions.includes('longer_duration')) duration = 8;
+    if (state.abilities.rootEntangle.evolutions.includes('stronger_slow')) slowAmount = 0.75;
+
     state.zombies.forEach(z => {
-      z.speed *= 0.5; // Slow down
-      setTimeout(() => { if (z) z.speed *= 2; }, 5000); // Reset after 5s (approximate in game loop)
+      if (z.x > INTERNAL_W + 100) return;
+      z.slowTimer = duration;
+      z.slowAmount = slowAmount;
       for (let k = 0; k < 5; k++) {
         state.particles.push({
           id: Math.random().toString(), x: z.x, y: z.y,
@@ -478,10 +623,19 @@ const runUpdateStep = (state: GameState, dt: number) => {
 
   if (state.abilities.poisonCloud.level > 0 && state.abilities.poisonCloud.cooldown <= 0 && state.zombies.length > 0) {
     state.abilities.poisonCloud.cooldown = getCooldownForLevel(state.abilities.poisonCloud.maxCooldown, state.abilities.poisonCloud.level);
-    const damage = state.plant.baseDamage * state.plant.damageMultiplier * 0.5 * state.abilities.poisonCloud.level;
-    // Apply poison over time (simplified as immediate damage for now, or could add a poison status)
+    const damage = calculateSkillDamage(state, 'poisonCloud');
+    
+    let ticks = 5;
+    if (state.abilities.poisonCloud.evolutions.includes('faster_ticks')) ticks = 10;
+
+    let maxRange = INTERNAL_W;
+    if (state.abilities.poisonCloud.evolutions.includes('wider_cloud')) maxRange = INTERNAL_W + 400;
+
     state.zombies.forEach(z => {
-      z.hp -= damage * 5; // 5 ticks worth of damage
+      if (z.x > maxRange) return;
+      z.poisonTimer = 5;
+      z.poisonDamage = damage;
+      z.poisonTicks = ticks;
       for (let k = 0; k < 10; k++) {
         state.particles.push({
           id: Math.random().toString(), x: z.x, y: z.y,
@@ -497,23 +651,20 @@ const runUpdateStep = (state: GameState, dt: number) => {
     state.timers.lastGrassTick += dt;
     
     let tickRate = 1;
-    if (state.abilities.sunBurst.evolutions.includes('faster_ticks')) tickRate = 0.5; // Assuming this evolution is shared or we add specific grass evolutions later
+    if (state.upgrades.grassEvolutions.includes('faster_ticks')) tickRate = 0.5;
 
     if (state.timers.lastGrassTick >= tickRate) {
       state.timers.lastGrassTick = 0;
       // Base damage equivalent to auto-click, but scales independently
-      let grassDamage = 5 * Math.pow(1.2, state.upgrades.grassLevel); 
+      let grassDamage = calculateSkillDamage(state, 'grass');
       
-      if (state.abilities.sunBurst.evolutions.includes('poison_grass')) {
-        grassDamage *= 1.5;
-      }
-
       for (let i = state.zombies.length - 1; i >= 0; i--) {
         const z = state.zombies[i];
-        z.hp -= grassDamage;
+      applyDamageToZombie(state, z, grassDamage);
         
-        if (state.abilities.sunBurst.evolutions.includes('slow_thorns')) {
-           z.x += z.speed * dt * 0.5; // Counteract some movement to simulate slow
+        if (state.upgrades.grassEvolutions.includes('slow_thorns')) {
+           z.slowTimer = Math.max(z.slowTimer || 0, 1);
+           z.slowAmount = Math.max(z.slowAmount || 0, 0.2); // Slight slow
         }
         
         // Grass spikes emerging effect
@@ -524,7 +675,7 @@ const runUpdateStep = (state: GameState, dt: number) => {
             y: INTERNAL_H - 100, // Ground level
             vx: 0, vy: -100 - Math.random() * 50,
             life: 0, maxLife: 0.4,
-            color: state.abilities.sunBurst.evolutions.includes('poison_grass') ? '#a855f7' : '#4ade80', size: 4,
+            color: state.upgrades.grassEvolutions.includes('poison_grass') ? '#a855f7' : '#4ade80', size: 4,
           });
         }
       }
@@ -533,27 +684,64 @@ const runUpdateStep = (state: GameState, dt: number) => {
 
   // Sun spawning
   state.timers.lastSunSpawn += dt;
-  if (state.timers.lastSunSpawn >= 10 + Math.random() * 10) { // Every 10-20 seconds
+  const sunSpawnInterval = 10 + Math.random() * 10;
+  if (state.timers.lastSunSpawn >= sunSpawnInterval) {
     state.timers.lastSunSpawn = 0;
     const x = 200 + Math.random() * (INTERNAL_W - 400);
     const targetY = 100 + Math.random() * (INTERNAL_H - 300);
-    const baseReward = 50 * Math.pow(1.3, state.wave); // Significant reward
-    state.suns.push({
-      id: Math.random().toString(),
-      x,
-      y: -50,
-      targetY,
-      speed: 100,
-      value: baseReward,
-      size: 40,
-      life: 0,
-      maxLife: 10, // Stays for 10 seconds after landing
-    });
+    let baseReward = 50 * Math.pow(1.3, state.wave);
+    
+    if (state.abilities.solGenerator.evolutions.includes('extra_value')) {
+      baseReward *= 1.5;
+    }
+
+    let sunSpeed = 100;
+    if (state.abilities.solGenerator.evolutions.includes('faster_fall')) {
+      sunSpeed = 200;
+    }
+    
+    const sunCount = 1 + (state.abilities.solGenerator?.level || 0);
+    
+    for (let i = 0; i < sunCount; i++) {
+      state.suns.push({
+        id: Math.random().toString(),
+        x: x + (Math.random() - 0.5) * 50,
+        y: -50 - (Math.random() * 50),
+        targetY: targetY + (Math.random() - 0.5) * 50,
+        speed: sunSpeed,
+        value: baseReward,
+        size: 40,
+        life: 0,
+        maxLife: 10,
+      });
+    }
   }
 
   // Update suns
   for (let i = state.suns.length - 1; i >= 0; i--) {
     const s = state.suns[i];
+    
+    // Magnetic Field evolution
+    if (state.abilities.solGenerator.evolutions.includes('auto_collect')) {
+      const dx = 150 - s.x;
+      const dy = (INTERNAL_H - 100) - s.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < 300) {
+        const moveSpeed = 400 * dt;
+        s.x += (dx / dist) * moveSpeed;
+        s.y += (dy / dist) * moveSpeed;
+        if (dist < 50) {
+          // Collect it
+          playSunSound();
+          const reward = s.value * state.energyMultiplier;
+          state.energy += reward;
+          state.stats.totalEnergyGenerated += reward;
+          state.suns.splice(i, 1);
+          continue;
+        }
+      }
+    }
+
     if (s.y < s.targetY) {
       s.y += s.speed * dt;
     } else {
@@ -580,13 +768,17 @@ const runUpdateStep = (state: GameState, dt: number) => {
     
     if (c.life >= c.maxLife) {
       state.energy += c.value;
-      state.totalEnergyGenerated += c.value;
+      state.stats.totalEnergyGenerated += c.value;
       state.coins.splice(i, 1);
     }
   }
 
   // Plant shooting
-  const actualAttackSpeed = state.plant.baseAttackSpeed * state.plant.attackSpeedMultiplier;
+  // Attack Speed softcap: if > 10 attacks/second, apply reduction
+  let actualAttackSpeed = state.plant.baseAttackSpeed * state.plant.attackSpeedMultiplier;
+  if (actualAttackSpeed > 10) {
+    actualAttackSpeed = 10 + Math.sqrt(actualAttackSpeed - 10);
+  }
   const shotInterval = 1 / actualAttackSpeed;
   state.timers.lastShot += dt;
 
@@ -605,7 +797,7 @@ const runUpdateStep = (state: GameState, dt: number) => {
         x: 150,
         y: INTERNAL_H - 120,
         speed: 400,
-        damage: state.plant.baseDamage * state.plant.damageMultiplier,
+        damage: calculatePlantDamage(state),
         size: state.plant.projectileSize,
         color: '#84cc16',
       });
@@ -623,7 +815,9 @@ const runUpdateStep = (state: GameState, dt: number) => {
       if (p.x > z.x - z.size / 2 && p.x < z.x + z.size / 2 && p.y > z.y - z.size && p.y < z.y) {
         const isCrit = Math.random() < 0.05; // 5% crit chance
         const damage = isCrit ? p.damage * 2 : p.damage;
-        z.hp -= damage;
+        
+        applyDamageToZombie(state, z, damage, isCrit);
+        
         z.hitTimer = 0.15; // 150ms flash and squish
         hit = true;
         playHitSound();
@@ -638,15 +832,6 @@ const runUpdateStep = (state: GameState, dt: number) => {
             color: '#84cc16', size: 3,
           });
         }
-
-        state.floatingTexts.push({
-          id: Math.random().toString(),
-          text: formatNumber(damage),
-          x: z.x, y: z.y - z.size - 10,
-          life: 0, maxLife: 0.8,
-          color: isCrit ? '#ef4444' : '#ffffff',
-          isCrit
-        });
         break;
       }
     }
@@ -664,12 +849,72 @@ const runUpdateStep = (state: GameState, dt: number) => {
       z.hitTimer -= dt;
     }
 
+    // Handle DoT (Poison, Burn)
+    if (z.poisonTimer !== undefined && z.poisonTimer > 0) {
+      const prevTimer = z.poisonTimer;
+      z.poisonTimer -= dt;
+      const ticks = z.poisonTicks || 5;
+      const tickInterval = 5 / ticks;
+      
+      // Check if we crossed a tick boundary
+      if (Math.floor(prevTimer / tickInterval) > Math.floor(z.poisonTimer / tickInterval)) {
+        const dmg = z.poisonDamage || 0;
+        applyDamageToZombie(state, z, dmg);
+      }
+    }
+
+    if (z.burnTimer !== undefined && z.burnTimer > 0) {
+      z.burnTimer -= dt;
+      const dmg = (z.burnDamage || 0) * dt;
+      z.hp -= dmg; // DoT doesn't show floating text every frame to avoid clutter
+      if (z.hp < 0) z.hp = 0;
+      if (Math.random() < 0.1) { // Visual effect
+        state.particles.push({
+          id: Math.random().toString(), x: z.x, y: z.y,
+          vx: (Math.random() - 0.5) * 50, vy: -50 - Math.random() * 50,
+          life: 0, maxLife: 0.4, color: '#f97316', size: 3
+        });
+      }
+    }
+
+    // Handle Root Entangle DoT
+    if (z.slowTimer !== undefined && z.slowTimer > 0) {
+      z.slowTimer -= dt;
+      if (state.abilities.rootEntangle.evolutions.includes('damage_over_time')) {
+        const dmg = calculateSkillDamage(state, 'rootEntangle') * dt;
+        z.hp -= dmg;
+        if (z.hp < 0) z.hp = 0;
+      }
+    }
+
     if (z.hp <= 0) {
       playDeathSound();
       const reward = z.reward * state.energyMultiplier;
       state.energy += reward;
-      state.totalEnergyGenerated += reward;
+      state.stats.totalEnergyGenerated += reward;
       state.waveState.killed++;
+      state.enemiesKilledForHeal++;
+      
+      // Poison Cloud: Plague evolution
+      if (state.abilities.poisonCloud.evolutions.includes('contagious')) {
+        state.zombies.forEach(other => {
+          const dx = other.x - z.x;
+          const dy = other.y - z.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 150 && other.id !== z.id) {
+            other.poisonTimer = 3;
+            other.poisonDamage = (z.poisonDamage || 0) * 0.5;
+            other.poisonTicks = 3;
+          }
+        });
+      }
+
+      // Heal 1 HP per 1000 kills
+      if (state.enemiesKilledForHeal >= 1000) {
+        state.enemiesKilledForHeal = 0;
+        state.playerHealth = Math.min(state.maxPlayerHealth, state.playerHealth + 1);
+      }
+
       state.zombies.splice(i, 1);
 
       state.floatingTexts.push({
@@ -682,10 +927,18 @@ const runUpdateStep = (state: GameState, dt: number) => {
       continue;
     }
 
-    z.x -= z.speed * dt;
+    let currentSpeed = z.speed;
+    if (z.slowTimer !== undefined && z.slowTimer > 0) {
+      currentSpeed *= (1 - (z.slowAmount || 0.5));
+    }
+
+    z.x -= currentSpeed * dt;
 
     if (z.x <= 180) {
-      state.plant.hp -= z.damage;
+      // Player takes damage based on wave
+      const damage = Math.max(1, Math.floor(state.wave * 0.5));
+      applyDamageToPlayer(state, damage);
+      
       state.zombies.splice(i, 1);
       state.waveState.killed++;
 
@@ -700,8 +953,8 @@ const runUpdateStep = (state: GameState, dt: number) => {
         });
       }
 
-      if (state.plant.hp <= 0) {
-        state.plant.hp = state.plant.maxHp;
+      if (state.playerHealth <= 0) {
+        state.playerHealth = state.maxPlayerHealth;
         state.wave = Math.max(1, state.wave - 1);
         resetWave(state);
         break;
@@ -730,12 +983,17 @@ const runUpdateStep = (state: GameState, dt: number) => {
   }
 
   // Update particles
+  const maxParticles = state.settings.lowPerformance ? 50 : 200;
   for (let i = state.particles.length - 1; i >= 0; i--) {
     const p = state.particles[i];
     p.life += dt;
     p.x += p.vx * dt;
     p.y += p.vy * dt;
+    p.vy += 500 * dt; // Gravity
     if (p.life >= p.maxLife) state.particles.splice(i, 1);
+  }
+  if (state.particles.length > maxParticles) {
+    state.particles.splice(0, state.particles.length - maxParticles);
   }
 
   // Update floating texts
@@ -765,7 +1023,7 @@ export const handleCanvasClick = (state: GameState, x: number, y: number, canvas
       playSunSound();
       const reward = s.value * state.energyMultiplier;
       state.energy += reward;
-      state.totalEnergyGenerated += reward;
+      state.stats.totalEnergyGenerated += reward;
       state.suns.splice(i, 1);
       
       state.floatingTexts.push({
@@ -797,9 +1055,9 @@ export const handleCanvasClick = (state: GameState, x: number, y: number, canvas
         internalY > z.y - z.size * 1.5 && internalY < z.y + z.size * 0.5) {
 
       const isCrit = Math.random() < 0.05;
-      const baseClickDamage = state.plant.baseDamage * state.plant.damageMultiplier * 2;
-      const damage = isCrit ? baseClickDamage * 2 : baseClickDamage;
-      z.hp -= damage;
+      const damage = calculateClickDamage(state, isCrit);
+      
+      applyDamageToZombie(state, z, damage, isCrit);
       hitZombie = true;
 
       for (let k = 0; k < 5; k++) {
@@ -812,15 +1070,6 @@ export const handleCanvasClick = (state: GameState, x: number, y: number, canvas
           color: '#fbbf24', size: 4,
         });
       }
-
-      state.floatingTexts.push({
-        id: Math.random().toString(),
-        text: formatNumber(damage),
-        x: internalX, y: internalY - 20,
-        life: 0, maxLife: 0.8,
-        color: isCrit ? '#ef4444' : '#ffffff',
-        isCrit
-      });
 
       if (z.hp <= 0) {
         playDeathSound();
@@ -843,6 +1092,14 @@ export const handleCanvasClick = (state: GameState, x: number, y: number, canvas
         }
 
         state.waveState.killed++;
+        state.enemiesKilledForHeal++;
+        
+        // Heal 1 HP per 1000 kills
+        if (state.enemiesKilledForHeal >= 1000) {
+          state.enemiesKilledForHeal = 0;
+          state.playerHealth = Math.min(state.maxPlayerHealth, state.playerHealth + 1);
+        }
+
         state.zombies.splice(i, 1);
       }
       break;
@@ -850,10 +1107,9 @@ export const handleCanvasClick = (state: GameState, x: number, y: number, canvas
   }
 
   if (!hitZombie) {
-    const baseClickDamage = state.plant.baseDamage * state.plant.damageMultiplier * 2;
-    const reward = baseClickDamage * 0.1 * state.energyMultiplier;
+    const reward = calculateClickDamage(state, false) * 0.1 * state.energyMultiplier;
     state.energy += reward;
-    state.totalEnergyGenerated += reward;
+    state.stats.totalEnergyGenerated += reward;
     state.floatingTexts.push({
       id: Math.random().toString(),
       text: `+${formatNumber(reward)}`,
@@ -865,85 +1121,139 @@ export const handleCanvasClick = (state: GameState, x: number, y: number, canvas
 };
 
 export const getUpgradeCost = (type: string, level: number, state: GameState) => {
+  // Economy stability: upgradeCost = baseCost * (growthRate ^ level)
   switch (type) {
-    case 'damage': return 10 * Math.pow(1.5, level);
-    case 'speed': return 25 * Math.pow(1.6, level);
-    case 'click': return 10 * Math.pow(1.5, level);
-    case 'energy': return 50 * Math.pow(1.8, level);
-    case 'evolutionSpeed': return 100 * Math.pow(2, level);
-    case 'grass': return 200 * Math.pow(2.5, level);
-    case 'sunBurst': return 500 * Math.pow(3, level);
-    case 'rootEntangle': return 1000 * Math.pow(3, level);
-    case 'poisonCloud': return 2000 * Math.pow(3, level);
-    default: return 0;
+    case 'damage': return 10 * Math.pow(1.15, level - 1);
+    case 'speed': return 25 * Math.pow(1.2, level - 1);
+    case 'click': return 10 * Math.pow(1.15, level - 1);
+    case 'energy': return 50 * Math.pow(1.25, level - 1);
+    case 'evolutionSpeed': return 100 * Math.pow(1.3, level - 1);
+    case 'grass': return 50 * Math.pow(1.4, level);
+    case 'sunBurst': return 100 * Math.pow(1.5, level);
+    case 'rootEntangle': return 200 * Math.pow(1.5, level);
+    case 'poisonCloud': return 300 * Math.pow(1.5, level);
+    case 'solGenerator': return 1000 * Math.pow(1.6, level);
+    default: return 999999999;
   }
 };
 
-export const buyUpgrade = (state: GameState, type: string) => {
-  let level = 0;
-  if (['sunBurst', 'rootEntangle', 'poisonCloud'].includes(type)) {
-    level = state.abilities[type as keyof typeof state.abilities].level;
-  } else {
-    level = (state.upgrades as any)[type + 'Level'];
-  }
+export const getUpgradeCostTotal = (type: string, level: number, state: GameState, amount: number | 'MAX'): { cost: number, count: number } => {
+  let totalCost = 0;
+  let currentLevel = level;
+  let count = 0;
+  let energyLeft = state.energy;
 
-  const cost = getUpgradeCost(type, level, state);
-  
-  if (state.energy >= cost) {
-    state.energy -= cost;
-    
-    if (['sunBurst', 'rootEntangle', 'poisonCloud'].includes(type)) {
-      state.abilities[type as keyof typeof state.abilities].level++;
-      const newLevel = state.abilities[type as keyof typeof state.abilities].level;
-      
-      // Trigger evolution modal every 10 levels
-      if (newLevel % 10 === 0) {
-        state.modal.isOpen = true;
-        state.modal.type = 'skillEvolution';
-        state.modal.skillId = type;
-        
-        if (type === 'sunBurst') {
-          state.modal.options = [
-            { id: 'larger_radius', name: 'Supernova', description: 'Increases explosion radius by 50%' },
-            { id: 'double_burst', name: 'Double Burst', description: 'Deals 50% more damage' },
-            { id: 'lingering_damage', name: 'Solar Flare', description: 'Leaves a lingering burn effect' }
-          ];
-        } else if (type === 'rootEntangle') {
-           state.modal.options = [
-            { id: 'longer_duration', name: 'Deep Roots', description: 'Increases slow duration' },
-            { id: 'stronger_slow', name: 'Thick Vines', description: 'Increases slow effect' },
-            { id: 'damage_over_time', name: 'Thorny Roots', description: 'Deals damage while slowed' }
-          ];
-        } else if (type === 'poisonCloud') {
-           state.modal.options = [
-            { id: 'wider_cloud', name: 'Toxic Smog', description: 'Affects more enemies' },
-            { id: 'faster_ticks', name: 'Corrosive Acid', description: 'Damage ticks twice as fast' },
-            { id: 'contagious', name: 'Plague', description: 'Enemies spread poison on death' }
-          ];
-        }
+  while (amount === 'MAX' || count < amount) {
+    const cost = getUpgradeCost(type, currentLevel, state);
+    if (amount === 'MAX') {
+      if (energyLeft >= cost) {
+        energyLeft -= cost;
+        totalCost += cost;
+        currentLevel++;
+        count++;
+        if (currentLevel % 10 === 0) break;
+      } else {
+        break;
       }
     } else {
-      (state.upgrades as any)[type + 'Level']++;
-      
-      if (type === 'grass') {
-         const newLevel = state.upgrades.grassLevel;
-         if (newLevel % 10 === 0) {
-            state.modal.isOpen = true;
-            state.modal.type = 'skillEvolution';
-            state.modal.skillId = type;
-            state.modal.options = [
-              { id: 'poison_grass', name: 'Toxic Weeds', description: 'Grass deals 50% more damage and turns purple' },
-              { id: 'faster_ticks', name: 'Razor Blades', description: 'Grass damages twice as fast' },
-              { id: 'slow_thorns', name: 'Entangling Thorns', description: 'Grass slightly slows enemies' }
-            ];
-         }
+      totalCost += cost;
+      currentLevel++;
+      count++;
+      if (currentLevel % 10 === 0 && count < amount) {
+        break;
       }
     }
+  }
 
-    switch (type) {
-      case 'damage': state.plant.damageMultiplier += 0.5; break;
-      case 'speed': state.plant.attackSpeedMultiplier += 0.1; break;
-      case 'energy': state.energyMultiplier += 0.5; break;
+  if (count === 0) {
+    return { cost: getUpgradeCost(type, level, state), count: 0 };
+  }
+
+  return { cost: totalCost, count };
+};
+
+export const buyUpgrade = (state: GameState, type: string, amount: number | 'MAX' = 1) => {
+  let bought = 0;
+  
+  while (amount === 'MAX' || bought < amount) {
+    let level = 0;
+    if (['sunBurst', 'rootEntangle', 'poisonCloud', 'solGenerator'].includes(type)) {
+      level = state.abilities[type as keyof typeof state.abilities].level;
+    } else {
+      level = (state.upgrades as any)[type + 'Level'];
+    }
+
+    const cost = getUpgradeCost(type, level, state);
+    
+    if (state.energy >= cost) {
+      state.energy -= cost;
+      bought++;
+      
+      if (['sunBurst', 'rootEntangle', 'poisonCloud', 'solGenerator'].includes(type)) {
+        state.abilities[type as keyof typeof state.abilities].level++;
+        const newLevel = state.abilities[type as keyof typeof state.abilities].level;
+        
+        // Trigger evolution modal every 10 levels
+        if (newLevel % 10 === 0) {
+          state.modal.isOpen = true;
+          state.modal.type = 'skillEvolution';
+          state.modal.skillId = type;
+          
+          if (type === 'sunBurst') {
+            state.modal.options = [
+              { id: 'larger_radius', name: 'Supernova', description: 'Increases explosion radius by 50%' },
+              { id: 'double_burst', name: 'Double Burst', description: 'Deals 50% more damage' },
+              { id: 'lingering_damage', name: 'Solar Flare', description: 'Leaves a lingering burn effect' }
+            ];
+          } else if (type === 'rootEntangle') {
+             state.modal.options = [
+              { id: 'longer_duration', name: 'Deep Roots', description: 'Increases slow duration' },
+              { id: 'stronger_slow', name: 'Thick Vines', description: 'Increases slow effect' },
+              { id: 'damage_over_time', name: 'Thorny Roots', description: 'Deals damage while slowed' }
+            ];
+          } else if (type === 'poisonCloud') {
+             state.modal.options = [
+              { id: 'wider_cloud', name: 'Toxic Smog', description: 'Affects more enemies' },
+              { id: 'faster_ticks', name: 'Corrosive Acid', description: 'Damage ticks twice as fast' },
+              { id: 'contagious', name: 'Plague', description: 'Enemies spread poison on death' }
+            ];
+          } else if (type === 'solGenerator') {
+             state.modal.options = [
+              { id: 'extra_value', name: 'Golden Sun', description: 'Suns are worth 50% more' },
+              { id: 'faster_fall', name: 'Comet Suns', description: 'Suns fall twice as fast' },
+              { id: 'auto_collect', name: 'Magnetic Field', description: 'Suns are collected automatically' }
+            ];
+          }
+        }
+      } else {
+        (state.upgrades as any)[type + 'Level']++;
+        
+        if (type === 'grass') {
+           const newLevel = state.upgrades.grassLevel;
+           if (newLevel % 10 === 0) {
+              state.modal.isOpen = true;
+              state.modal.type = 'skillEvolution';
+              state.modal.skillId = type;
+              state.modal.options = [
+                { id: 'poison_grass', name: 'Toxic Weeds', description: 'Grass deals 50% more damage and turns purple' },
+                { id: 'faster_ticks', name: 'Razor Blades', description: 'Grass damages twice as fast' },
+                { id: 'slow_thorns', name: 'Entangling Thorns', description: 'Grass slightly slows enemies' }
+              ];
+           }
+        }
+      }
+
+      switch (type) {
+        case 'damage': state.plant.damageMultiplier = Math.pow(1.15, state.upgrades.damageLevel - 1); break;
+        case 'speed': state.plant.attackSpeedMultiplier = Math.pow(1.1, state.upgrades.speedLevel - 1); break;
+        case 'energy': state.energyMultiplier = Math.pow(1.12, state.upgrades.energyLevel - 1); break;
+      }
+
+      if (state.modal.isOpen) {
+        break;
+      }
+    } else {
+      break;
     }
   }
 };
@@ -976,11 +1286,16 @@ export const drawGame = (ctx: CanvasRenderingContext2D, width: number, height: n
   }
 
   // Ground
-  ctx.fillStyle = '#171717';
+  let groundColor = '#171717';
+  if (state.upgrades.grassLevel > 0) {
+    groundColor = state.upgrades.grassEvolutions.includes('poison_grass') ? '#2e1065' : '#064e3b';
+  }
+  ctx.fillStyle = groundColor;
   ctx.fillRect(0, INTERNAL_H - 100, INTERNAL_W, 100);
   
   // Ground texture/grid
-  ctx.strokeStyle = 'rgba(34, 197, 94, 0.05)';
+  const grassColor = state.upgrades.grassEvolutions.includes('poison_grass') ? '168, 85, 247' : '34, 197, 94';
+  ctx.strokeStyle = `rgba(${grassColor}, 0.05)`;
   ctx.lineWidth = 1;
   for (let i = 0; i < INTERNAL_W; i += 50) {
     ctx.beginPath();
@@ -1153,20 +1468,34 @@ export const drawGame = (ctx: CanvasRenderingContext2D, width: number, height: n
     ctx.fillStyle = p.color;
     ctx.globalAlpha = 1 - (p.life / p.maxLife);
     ctx.beginPath();
-    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.globalAlpha = 1;
+    if (state.settings.lowPerformance) {
+      ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+    } else {
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
+  ctx.globalAlpha = 1;
 
   // Draw Floating Texts
   ctx.font = 'bold 20px monospace';
   ctx.textAlign = 'center';
   for (const ft of state.floatingTexts) {
-    ctx.fillStyle = ft.color;
     ctx.globalAlpha = 1 - (ft.life / ft.maxLife);
+    
+    if (!state.settings.lowPerformance) {
+      ctx.shadowColor = 'black';
+      ctx.shadowBlur = 4;
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = 'black';
+      ctx.strokeText(ft.text, ft.x, ft.y);
+      ctx.shadowBlur = 0;
+    }
+    
+    ctx.fillStyle = ft.color;
     ctx.fillText(ft.text, ft.x, ft.y);
-    ctx.globalAlpha = 1;
   }
+  ctx.globalAlpha = 1;
 
   ctx.restore();
 };
@@ -1327,7 +1656,7 @@ function drawPlant(ctx: CanvasRenderingContext2D, state: GameState) {
   ctx.strokeRect(x - 40, y + 32, 80, 6);
 
   // HP Bar
-  const hpPercent = Math.max(0, hp / maxHp);
+  const hpPercent = Math.max(0, state.playerHealth / state.maxPlayerHealth);
   ctx.fillStyle = '#ef4444';
   ctx.fillRect(x - 40, y + 20, 80, 8);
   ctx.fillStyle = '#22c55e';
@@ -1335,6 +1664,12 @@ function drawPlant(ctx: CanvasRenderingContext2D, state: GameState) {
   ctx.strokeStyle = '#000';
   ctx.lineWidth = 2;
   ctx.strokeRect(x - 40, y + 20, 80, 8);
+
+  // HP Text
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 10px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(`HP: ${formatNumber(state.playerHealth)} / ${formatNumber(state.maxPlayerHealth)}`, x, y + 45);
 }
 
 function drawZombie(ctx: CanvasRenderingContext2D, z: Zombie, time: number) {

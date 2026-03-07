@@ -55,6 +55,7 @@ type Translations = {
     ability1: string;
     ability2: string;
     ability3: string;
+    ability4: string;
   };
 };
 
@@ -66,16 +67,16 @@ export const t: Translations = {
     bossWave: 'Boss Wave', evolvePlant: 'Evolve Plant', nextStage: 'Next Stage', level: 'Level', cost: 'Cost',
     saveGame: 'Save', loadGame: 'Load', resetGame: 'Reset', options: 'Options', stats: 'Stats',
     totalEnergy: 'Total Energy', zombiesKilled: 'Zombies Killed', developedBy: 'Developed by', grassInfo: 'Damages walking zombies',
-    ability1: 'Sun Burst', ability2: 'Root Entangle', ability3: 'Poison Cloud'
+    ability1: 'Sun Burst', ability2: 'Root Entangle', ability3: 'Poison Cloud', ability4: 'Sol Generator'
   },
   pt: {
-    title: 'Defesa de Torre Idle', energy: 'Energia', wave: 'Onda', plantLevel: 'Nível da Planta', upgrades: 'Melhorias',
+    title: 'Defesa de Torre Idle - HEART', energy: 'Energia', wave: 'Onda', plantLevel: 'Nível da Planta', upgrades: 'Melhorias',
     damage: 'Dano da Planta', attackSpeed: 'Velocidade de Ataque', clickDamage: 'Dano de Clique', energyMultiplier: 'Multiplicador de Energia',
     evolutionSpeed: 'Velocidade de Evolução', grassDamage: 'Grama Afiada (Auto-Clique)', abilities: 'Habilidades', autoEvolution: 'Evolução Automática',
     bossWave: 'Onda do Chefe', evolvePlant: 'Evoluir Planta', nextStage: 'Próximo Estágio', level: 'Nível', cost: 'Custo',
     saveGame: 'Salvar', loadGame: 'Carregar', resetGame: 'Resetar', options: 'Opções', stats: 'Estatísticas',
     totalEnergy: 'Energia Total', zombiesKilled: 'Zumbis Mortos', developedBy: 'Desenvolvido por', grassInfo: 'Causa dano em zumbis andando',
-    ability1: 'Explosão Solar', ability2: 'Enraizar', ability3: 'Nuvem de Veneno'
+    ability1: 'Explosão Solar', ability2: 'Enraizar', ability3: 'Nuvem de Veneno', ability4: 'Gerador de Sol'
   },
   es: {
     title: 'Defensa de Torre Idle', energy: 'Energía', wave: 'Oleada', plantLevel: 'Nivel de Planta', upgrades: 'Mejoras',
@@ -84,7 +85,7 @@ export const t: Translations = {
     bossWave: 'Oleada de Jefe', evolvePlant: 'Evolucionar Planta', nextStage: 'Siguiente Etapa', level: 'Nivel', cost: 'Costo',
     saveGame: 'Guardar', loadGame: 'Cargar', resetGame: 'Reiniciar', options: 'Opciones', stats: 'Estadísticas',
     totalEnergy: 'Energía Total', zombiesKilled: 'Zombis Muertos', developedBy: 'Desarrollado por', grassInfo: 'Daña a los zombis que caminan',
-    ability1: 'Estallido Solar', ability2: 'Enredo de Raíces', ability3: 'Nube de Veneno'
+    ability1: 'Estallido Solar', ability2: 'Enredo de Raíces', ability3: 'Nube de Veneno', ability4: 'Generador de Sol'
   },
   zh: {
     title: '放置塔防', energy: '能量', wave: '波数', plantLevel: '植物等级', upgrades: '升级',
@@ -93,7 +94,7 @@ export const t: Translations = {
     bossWave: '首领波', evolvePlant: '进化植物', nextStage: '下一阶段', level: '等级', cost: '花费',
     saveGame: '保存', loadGame: '加载', resetGame: '重置', options: '选项', stats: '统计',
     totalEnergy: '总能量', zombiesKilled: '击杀僵尸', developedBy: '开发者', grassInfo: '对行走的僵尸造成伤害',
-    ability1: '太阳爆发', ability2: '根须缠绕', ability3: '毒云'
+    ability1: '太阳爆发', ability2: '根须缠绕', ability3: '毒云', ability4: '太阳生成器'
   },
   hi: {
     title: 'आइडल टावर डिफेंस', energy: 'ऊर्जा', wave: 'लहर', plantLevel: 'पौधे का स्तर', upgrades: 'उन्नयन',
@@ -102,7 +103,7 @@ export const t: Translations = {
     bossWave: 'बॉस लहर', evolvePlant: 'पौधे को विकसित करें', nextStage: 'अगला चरण', level: 'स्तर', cost: 'लागत',
     saveGame: 'सहेजें', loadGame: 'लोड करें', resetGame: 'रीसेट करें', options: 'विकल्प', stats: 'आंकड़े',
     totalEnergy: 'कुल ऊर्जा', zombiesKilled: 'मारे गए ज़ॉम्बी', developedBy: 'द्वारा विकसित', grassInfo: 'चलने वाले ज़ॉम्बी को नुकसान पहुंचाता है',
-    ability1: 'सूर्य विस्फोट', ability2: 'जड़ उलझाव', ability3: 'जहर बादल'
+    ability1: 'सूर्य विस्फोट', ability2: 'जड़ उलझाव', ability3: 'जहर बादल', ability4: 'सूर्य जनरेटर'
   },
   fr: {
     title: 'Idle Tower Defense', energy: 'Énergie', wave: 'Vague', plantLevel: 'Niveau de Plante', upgrades: 'Améliorations',
@@ -111,7 +112,7 @@ export const t: Translations = {
     bossWave: 'Vague de Boss', evolvePlant: 'Évoluer Plante', nextStage: 'Prochaine Étape', level: 'Niveau', cost: 'Coût',
     saveGame: 'Sauvegarder', loadGame: 'Charger', resetGame: 'Réinitialiser', options: 'Options', stats: 'Statistiques',
     totalEnergy: 'Énergie Totale', zombiesKilled: 'Zombies Tués', developedBy: 'Développé par', grassInfo: 'Blesse les zombies qui marchent',
-    ability1: 'Éclat Solaire', ability2: 'Enchevêtrement', ability3: 'Nuage de Poison'
+    ability1: 'Éclat Solaire', ability2: 'Enchevêtrement', ability3: 'Nuage de Poison', ability4: 'Générateur de Soleil'
   },
   ar: {
     title: 'الدفاع عن البرج الخامل', energy: 'طاقة', wave: 'موجة', plantLevel: 'مستوى النبات', upgrades: 'ترقيات',
@@ -120,7 +121,7 @@ export const t: Translations = {
     bossWave: 'موجة الزعيم', evolvePlant: 'تطوير النبات', nextStage: 'المرحلة التالية', level: 'مستوى', cost: 'تكلفة',
     saveGame: 'حفظ', loadGame: 'تحميل', resetGame: 'إعادة ضبط', options: 'خيارات', stats: 'إحصائيات',
     totalEnergy: 'إجمالي الطاقة', zombiesKilled: 'الزومبي المقتولين', developedBy: 'تم التطوير بواسطة', grassInfo: 'يلحق الضرر بالزومبي الماشي',
-    ability1: 'انفجار شمسي', ability2: 'تشابك الجذور', ability3: 'سحابة سامة'
+    ability1: 'انفجار شمسي', ability2: 'تشابك الجذور', ability3: 'سحابة سامة', ability4: 'مولد الشمس'
   },
   bn: {
     title: 'আইডল টাওয়ার ডিফেন্স', energy: 'শক্তি', wave: 'তরঙ্গ', plantLevel: 'উদ্ভিদের স্তর', upgrades: 'আপগ্রেড',
@@ -129,7 +130,7 @@ export const t: Translations = {
     bossWave: 'বস তরঙ্গ', evolvePlant: 'উদ্ভিদ বিবর্তিত করুন', nextStage: 'পরবর্তী পর্যায়', level: 'স্তর', cost: 'খরচ',
     saveGame: 'সংরক্ষণ করুন', loadGame: 'লোড করুন', resetGame: 'রিসেট করুন', options: 'বিকল্প', stats: 'পরিসংখ্যান',
     totalEnergy: 'মোট শক্তি', zombiesKilled: 'নিহত জম্বি', developedBy: 'দ্বারা তৈরি', grassInfo: 'হাঁটা জম্বিদের ক্ষতি করে',
-    ability1: 'সূর্য বিস্ফোরণ', ability2: 'শিকড় জড়ানো', ability3: 'বিষ মেঘ'
+    ability1: 'সূর্য বিস্ফোরণ', ability2: 'শিকড় জড়ানো', ability3: 'বিষ মেঘ', ability4: 'সূর্য জেনারেটর'
   },
   ru: {
     title: 'Idle Tower Defense', energy: 'Энергия', wave: 'Волна', plantLevel: 'Уровень Растения', upgrades: 'Улучшения',
@@ -138,7 +139,7 @@ export const t: Translations = {
     bossWave: 'Волна Босса', evolvePlant: 'Эволюционировать', nextStage: 'Следующая Стадия', level: 'Уровень', cost: 'Стоимость',
     saveGame: 'Сохранить', loadGame: 'Загрузить', resetGame: 'Сброс', options: 'Опции', stats: 'Статистика',
     totalEnergy: 'Всего Энергии', zombiesKilled: 'Убито Зомби', developedBy: 'Разработано', grassInfo: 'Наносит урон идущим зомби',
-    ability1: 'Солнечный Взрыв', ability2: 'Опутывание Корнями', ability3: 'Ядовитое Облако'
+    ability1: 'Солнечный Взрыв', ability2: 'Опутывание Корнями', ability3: 'Ядовитое Облако', ability4: 'Генератор Солнца'
   },
   ur: {
     title: 'آئیڈل ٹاور ڈیفنس', energy: 'توانائی', wave: 'لہر', plantLevel: 'پودے کی سطح', upgrades: 'اپ گریڈز',
@@ -147,7 +148,7 @@ export const t: Translations = {
     bossWave: 'باس کی لہر', evolvePlant: 'پودا تیار کریں', nextStage: 'اگلا مرحلہ', level: 'سطح', cost: 'قیمت',
     saveGame: 'محفوظ کریں', loadGame: 'لوڈ کریں', resetGame: 'ری سیٹ کریں', options: 'اختیارات', stats: 'اعداد و شمار',
     totalEnergy: 'کل توانائی', zombiesKilled: 'مارے گئے زومبی', developedBy: 'تیار کردہ', grassInfo: 'چلنے والے زومبی کو نقصان پہنچاتا ہے',
-    ability1: 'سورج کا دھماکہ', ability2: 'جڑوں کا الجھاؤ', ability3: 'زہریلا بادل'
+    ability1: 'سورج کا دھماکہ', ability2: 'جڑوں کا الجھاؤ', ability3: 'زہریلا بادل', ability4: 'سورج جنریٹر'
   },
   id: {
     title: 'Idle Tower Defense', energy: 'Energi', wave: 'Gelombang', plantLevel: 'Level Tanaman', upgrades: 'Peningkatan',
@@ -156,7 +157,7 @@ export const t: Translations = {
     bossWave: 'Gelombang Bos', evolvePlant: 'Evolusi Tanaman', nextStage: 'Tahap Selanjutnya', level: 'Level', cost: 'Biaya',
     saveGame: 'Simpan', loadGame: 'Muat', resetGame: 'Atur Ulang', options: 'Opsi', stats: 'Statistik',
     totalEnergy: 'Total Energi', zombiesKilled: 'Zombi Terbunuh', developedBy: 'Dikembangkan oleh', grassInfo: 'Merusak zombi yang berjalan',
-    ability1: 'Ledakan Matahari', ability2: 'Jeratan Akar', ability3: 'Awan Beracun'
+    ability1: 'Ledakan Matahari', ability2: 'Jeratan Akar', ability3: 'Awan Beracun', ability4: 'Generator Matahari'
   },
   de: {
     title: 'Idle Tower Defense', energy: 'Energie', wave: 'Welle', plantLevel: 'Pflanzenlevel', upgrades: 'Verbesserungen',
@@ -165,7 +166,7 @@ export const t: Translations = {
     bossWave: 'Boss-Welle', evolvePlant: 'Pflanze Entwickeln', nextStage: 'Nächste Stufe', level: 'Level', cost: 'Kosten',
     saveGame: 'Speichern', loadGame: 'Laden', resetGame: 'Zurücksetzen', options: 'Optionen', stats: 'Statistiken',
     totalEnergy: 'Gesamtenergie', zombiesKilled: 'Getötete Zombies', developedBy: 'Entwickelt von', grassInfo: 'Fügt gehenden Zombies Schaden zu',
-    ability1: 'Sonnenexplosion', ability2: 'Wurzelverschlingung', ability3: 'Giftwolke'
+    ability1: 'Sonnenexplosion', ability2: 'Wurzelverschlingung', ability3: 'Giftwolke', ability4: 'Sonnengenerator'
   },
   ja: {
     title: '放置タワーディフェンス', energy: 'エネルギー', wave: 'ウェーブ', plantLevel: '植物レベル', upgrades: 'アップグレード',
@@ -174,7 +175,7 @@ export const t: Translations = {
     bossWave: 'ボスウェーブ', evolvePlant: '植物を進化', nextStage: '次のステージ', level: 'レベル', cost: 'コスト',
     saveGame: 'セーブ', loadGame: 'ロード', resetGame: 'リセット', options: 'オプション', stats: '統計',
     totalEnergy: '合計エネルギー', zombiesKilled: '倒したゾンビ', developedBy: '開発者', grassInfo: '歩くゾンビにダメージを与える',
-    ability1: 'サンバースト', ability2: 'ルートエンタングル', ability3: 'ポイズンクラウド'
+    ability1: 'サンバースト', ability2: 'ルートエンタングル', ability3: 'ポイズンクラウド', ability4: 'サンジェネレーター'
   },
   mr: {
     title: 'आइडल टावर डिफेन्स', energy: 'ऊर्जा', wave: 'लाट', plantLevel: 'वनस्पती पातळी', upgrades: 'सुधारणा',
@@ -183,7 +184,7 @@ export const t: Translations = {
     bossWave: 'बॉस लाट', evolvePlant: 'वनस्पती विकसित करा', nextStage: 'पुढील टप्पा', level: 'पातळी', cost: 'किंमत',
     saveGame: 'जतन करा', loadGame: 'लोड करा', resetGame: 'रीसेट करा', options: 'पर्याय', stats: 'आकडेवारी',
     totalEnergy: 'एकूण ऊर्जा', zombiesKilled: 'मारलेले झोम्बी', developedBy: 'द्वारे विकसित', grassInfo: 'चालणाऱ्या झोम्बींना नुकसान पोहोचवते',
-    ability1: 'सूर्य स्फोट', ability2: 'मूळ गुंता', ability3: 'विषारी ढग'
+    ability1: 'सूर्य स्फोट', ability2: 'मूळ गुंता', ability3: 'विषारी ढग', ability4: 'सूर्य जनरेटर'
   },
   te: {
     title: 'ఐడిల్ టవర్ డిఫెన్స్', energy: 'శక్తి', wave: 'వేవ్', plantLevel: 'మొక్క స్థాయి', upgrades: 'నవీకరణలు',
@@ -192,7 +193,7 @@ export const t: Translations = {
     bossWave: 'బాస్ వేవ్', evolvePlant: 'మొక్కను అభివృద్ధి చేయండి', nextStage: 'తదుపరి దశ', level: 'స్థాయి', cost: 'ఖర్చు',
     saveGame: 'సేవ్ చేయండి', loadGame: 'లోడ్ చేయండి', resetGame: 'రీసెట్ చేయండి', options: 'ఎంపికలు', stats: 'గణాంకాలు',
     totalEnergy: 'మొత్తం శక్తి', zombiesKilled: 'చంపబడిన జాంబీస్', developedBy: 'అభివృద్ధి చేసినవారు', grassInfo: 'నడిచే జాంబీస్‌కు నష్టం కలిగిస్తుంది',
-    ability1: 'సూర్య పేలుడు', ability2: 'రూట్ చిక్కు', ability3: 'విష మేఘం'
+    ability1: 'సూర్య పేలుడు', ability2: 'రూట్ చిక్కు', ability3: 'విష మేఘం', ability4: 'సూర్య జనరేటర్'
   },
   tr: {
     title: 'Boşta Kule Savunması', energy: 'Enerji', wave: 'Dalga', plantLevel: 'Bitki Seviyesi', upgrades: 'Yükseltmeler',
@@ -201,7 +202,7 @@ export const t: Translations = {
     bossWave: 'Patron Dalgası', evolvePlant: 'Bitkiyi Evrimleştir', nextStage: 'Sonraki Aşama', level: 'Seviye', cost: 'Maliyet',
     saveGame: 'Kaydet', loadGame: 'Yükle', resetGame: 'Sıfırla', options: 'Seçenekler', stats: 'İstatistikler',
     totalEnergy: 'Toplam Enerji', zombiesKilled: 'Öldürülen Zombiler', developedBy: 'Geliştiren', grassInfo: 'Yürüyen zombilere hasar verir',
-    ability1: 'Güneş Patlaması', ability2: 'Kök Dolaşması', ability3: 'Zehir Bulutu'
+    ability1: 'Güneş Patlaması', ability2: 'Kök Dolaşması', ability3: 'Zehir Bulutu', ability4: 'Güneş Jeneratörü'
   },
   ta: {
     title: 'ஐடல் டவர் டிஃபென்ஸ்', energy: 'ஆற்றல்', wave: 'அலை', plantLevel: 'தாவர நிலை', upgrades: 'மேம்படுத்தல்கள்',
@@ -210,7 +211,7 @@ export const t: Translations = {
     bossWave: 'பாஸ் அலை', evolvePlant: 'தாவரத்தை உருவாக்குங்கள்', nextStage: 'அடுத்த கட்டம்', level: 'நிலை', cost: 'செலவு',
     saveGame: 'சேமி', loadGame: 'சுமை', resetGame: 'மீட்டமை', options: 'விருப்பங்கள்', stats: 'புள்ளிவிவரங்கள்',
     totalEnergy: 'மொத்த ஆற்றல்', zombiesKilled: 'கொல்லப்பட்ட ஜோம்பிஸ்', developedBy: 'உருவாக்கியவர்', grassInfo: 'நடக்கும் ஜோம்பிஸுக்கு சேதம் விளைவிக்கும்',
-    ability1: 'சூரிய வெடிப்பு', ability2: 'ரூட் சிக்கல்', ability3: 'விஷ மேகம்'
+    ability1: 'சூரிய வெடிப்பு', ability2: 'ரூட் சிக்கல்', ability3: 'விஷ மேகம்', ability4: 'சூரிய ஜெனரேட்டர்'
   },
   yue: {
     title: '放置塔防', energy: '能量', wave: '波數', plantLevel: '植物等級', upgrades: '升級',
@@ -219,7 +220,7 @@ export const t: Translations = {
     bossWave: '首領波', evolvePlant: '進化植物', nextStage: '下一階段', level: '等級', cost: '花費',
     saveGame: '保存', loadGame: '加載', resetGame: '重置', options: '選項', stats: '統計',
     totalEnergy: '總能量', zombiesKilled: '擊殺殭屍', developedBy: '開發者', grassInfo: '對行走的殭屍造成傷害',
-    ability1: '太陽爆發', ability2: '根鬚纏繞', ability3: '毒雲'
+    ability1: '太陽爆發', ability2: '根鬚纏繞', ability3: '毒雲', ability4: '太陽生成器'
   },
   vi: {
     title: 'Phòng Thủ Tháp Nhàn Rỗi', energy: 'Năng lượng', wave: 'Làn sóng', plantLevel: 'Cấp độ Cây', upgrades: 'Nâng cấp',
@@ -228,7 +229,7 @@ export const t: Translations = {
     bossWave: 'Làn sóng Boss', evolvePlant: 'Tiến hóa Cây', nextStage: 'Giai đoạn Tiếp theo', level: 'Cấp độ', cost: 'Chi phí',
     saveGame: 'Lưu', loadGame: 'Tải', resetGame: 'Đặt lại', options: 'Tùy chọn', stats: 'Thống kê',
     totalEnergy: 'Tổng Năng lượng', zombiesKilled: 'Zombie Đã giết', developedBy: 'Phát triển bởi', grassInfo: 'Gây sát thương cho zombie đang đi',
-    ability1: 'Bùng nổ Mặt trời', ability2: 'Rễ Trói buộc', ability3: 'Đám mây Độc'
+    ability1: 'Bùng nổ Mặt trời', ability2: 'Rễ Trói buộc', ability3: 'Đám mây Độc', ability4: 'Máy phát Mặt trời'
   },
   tl: {
     title: 'Idle Tower Defense', energy: 'Enerhiya', wave: 'Alon', plantLevel: 'Antas ng Halaman', upgrades: 'Mga Upgrade',
@@ -237,6 +238,6 @@ export const t: Translations = {
     bossWave: 'Alon ng Boss', evolvePlant: 'I-evolve ang Halaman', nextStage: 'Susunod na Yugto', level: 'Antas', cost: 'Halaga',
     saveGame: 'I-save', loadGame: 'I-load', resetGame: 'I-reset', options: 'Mga Opsyon', stats: 'Mga Istatistika',
     totalEnergy: 'Kabuuang Enerhiya', zombiesKilled: 'Mga Zombing Napatay', developedBy: 'Binuo ni', grassInfo: 'Pinipinsala ang mga naglalakad na zombie',
-    ability1: 'Pagsabog ng Araw', ability2: 'Paggapos ng Ugat', ability3: 'Nakakalasong Ulap'
+    ability1: 'Pagsabog ng Araw', ability2: 'Paggapos ng Ugat', ability3: 'Nakakalasong Ulap', ability4: 'Generator ng Araw'
   }
 };
