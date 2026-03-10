@@ -1,63 +1,105 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { IS_ADS_ENABLED } from '../ads/adsterra';
+import { IS_ADS_ENABLED, detectAdBlock, logAdsterra, loadAdsterraScript } from '../ads/adsterra';
 
 interface AdsterraAdProps {
-  zoneId: string;
+  zone: string;
   format?: 'native_banner' | 'display_banner' | 'interstitial';
   width?: number;
   height?: number;
   className?: string;
+  lazy?: boolean;
+  fallback?: React.ReactNode;
 }
 
 export default function AdsterraAd({ 
-  zoneId, 
+  zone, 
   format = 'display_banner', 
   width = 300, 
   height = 250, 
-  className = '' 
+  className = '',
+  lazy = false,
+  fallback
 }: AdsterraAdProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [hasError, setHasError] = useState(false);
+  const [isVisible, setIsVisible] = useState(!lazy);
+  const [adBlockActive, setAdBlockActive] = useState(false);
 
   useEffect(() => {
-    if (!IS_ADS_ENABLED || !containerRef.current) return;
+    if (!IS_ADS_ENABLED) return;
 
-    // Clear previous content to avoid duplicates on strict mode re-renders
-    containerRef.current.innerHTML = '';
-    setHasError(false);
-
-    try {
-      // Adsterra configuration object
-      const conf = document.createElement('script');
-      conf.type = 'text/javascript';
-      conf.innerHTML = `
-        atOptions = {
-          'key' : '${zoneId}',
-          'format' : 'iframe',
-          'height' : ${height},
-          'width' : ${width},
-          'params' : {}
-        };
-      `;
-
-      // Adsterra invoke script
-      const script = document.createElement('script');
-      script.type = 'text/javascript';
-      script.async = true;
-      script.src = `//www.highperformanceformat.com/${zoneId}/invoke.js`;
-      
-      script.onerror = () => {
-        console.warn(`[Adsterra] Failed to load ad script for zone ${zoneId}. AdBlocker might be enabled.`);
+    detectAdBlock().then(isBlocked => {
+      if (isBlocked) {
+        setAdBlockActive(true);
         setHasError(true);
-      };
+      }
+    });
+  }, []);
 
-      containerRef.current.appendChild(conf);
-      containerRef.current.appendChild(script);
-    } catch (e) {
-      console.error('[Adsterra] Error injecting ad:', e);
-      setHasError(true);
-    }
-  }, [zoneId, width, height]);
+  useEffect(() => {
+    if (!lazy || !containerRef.current || adBlockActive || !IS_ADS_ENABLED) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '200px' }
+    );
+
+    observer.observe(containerRef.current);
+
+    return () => observer.disconnect();
+  }, [lazy, adBlockActive]);
+
+  useEffect(() => {
+    if (!IS_ADS_ENABLED || !isVisible || !containerRef.current || adBlockActive) return;
+
+    const container = containerRef.current;
+    let isMounted = true;
+
+    // Use requestAnimationFrame to avoid forced reflows
+    requestAnimationFrame(() => {
+      if (!isMounted) return;
+      
+      container.innerHTML = '';
+      setHasError(false);
+
+      try {
+        const conf = document.createElement('script');
+        conf.type = 'text/javascript';
+        conf.innerHTML = `
+          atOptions = {
+            'key' : '${zone}',
+            'format' : 'iframe',
+            'height' : ${height},
+            'width' : ${width},
+            'params' : {}
+          };
+        `;
+        container.appendChild(conf);
+
+        loadAdsterraScript(zone, `//www.highperformanceformat.com/${zone}/invoke.js`, container)
+          .catch(e => {
+            if (isMounted) {
+              logAdsterra('Error injecting ad:', e);
+              setHasError(true);
+            }
+          });
+      } catch (e) {
+        if (isMounted) {
+          logAdsterra('Error injecting ad:', e);
+          setHasError(true);
+        }
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [zone, width, height, isVisible, adBlockActive]);
 
   if (!IS_ADS_ENABLED) return null;
 
@@ -65,14 +107,19 @@ export default function AdsterraAd({
     <div 
       className={`adsterra-container flex flex-col items-center justify-center bg-stone-900/30 border border-stone-800/50 rounded-lg overflow-hidden ${className}`} 
       style={{ minWidth: width, minHeight: height }}
+      ref={containerRef}
     >
       {hasError ? (
-        <div className="text-stone-500 text-xs text-center p-4 flex flex-col items-center justify-center w-full h-full">
-          <span className="opacity-70">Advertisement</span>
-          <span className="text-[10px] opacity-40 mt-1">(Please disable AdBlock to support us)</span>
-        </div>
+        fallback ? (
+          <>{fallback}</>
+        ) : (
+          <div className="text-stone-500 text-xs text-center p-4 flex flex-col items-center justify-center w-full h-full">
+            <span className="opacity-70">Advertisement</span>
+            <span className="text-[10px] opacity-40 mt-1">(Please disable AdBlock to support us)</span>
+          </div>
+        )
       ) : (
-        <div ref={containerRef} className="w-full h-full flex items-center justify-center" />
+        <div className="w-full h-full flex items-center justify-center" />
       )}
     </div>
   );

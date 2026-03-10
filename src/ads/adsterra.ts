@@ -1,7 +1,7 @@
 /**
  * Adsterra Monetization Module
  * 
- * PUBLISHER ID: 5657609
+ * PUBLISHER ID: 5657606
  * 
  * HOW TO CHANGE THE ID:
  * Update the VITE_ADSTERRA_PUBLISHER_ID in your .env file.
@@ -14,8 +14,61 @@
  * Example: <AdsterraAd zoneId="your_zone_id" width={300} height={250} />
  */
 
-export const ADSTERRA_PUBLISHER_ID = (import.meta as any).env.VITE_ADSTERRA_PUBLISHER_ID || '5657609';
+export const ADSTERRA_PUBLISHER_ID = (import.meta as any).env.VITE_ADSTERRA_PUBLISHER_ID || '5657606';
 export const IS_ADS_ENABLED = (import.meta as any).env.VITE_ENABLE_ADSTERRA !== 'false';
+
+const isDev = (import.meta as any).env.DEV;
+
+export const logAdsterra = (...args: any[]) => {
+  if (isDev) {
+    console.warn('[Adsterra]', ...args);
+  }
+};
+
+let adBlockDetected = false;
+
+export const detectAdBlock = async (): Promise<boolean> => {
+  if (adBlockDetected) return true;
+  try {
+    const response = await fetch('https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js', {
+      method: 'HEAD',
+      mode: 'no-cors',
+      cache: 'no-store',
+    });
+    return false;
+  } catch (e) {
+    adBlockDetected = true;
+    logAdsterra('AdBlock detected');
+    return true;
+  }
+};
+
+export const loadAdsterraScript = (zoneId: string, src: string, container: HTMLElement, retries = 2): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    const attemptLoad = (attemptsLeft: number) => {
+      const script = document.createElement('script');
+      script.type = 'text/javascript';
+      script.async = true;
+      script.defer = true;
+      script.src = src;
+
+      script.onload = () => resolve();
+      script.onerror = () => {
+        if (attemptsLeft > 0) {
+          logAdsterra(`Retrying ad script for zone: ${zoneId}. Attempts left: ${attemptsLeft}`);
+          setTimeout(() => attemptLoad(attemptsLeft - 1), 1000);
+        } else {
+          logAdsterra(`Failed to load ad script for zone: ${zoneId}`);
+          reject(new Error('Script load failed'));
+        }
+      };
+
+      container.appendChild(script);
+    };
+
+    attemptLoad(retries);
+  });
+};
 
 /**
  * Initializes global ad formats like Popunder, Social Bar, or Smartlink.
@@ -32,31 +85,6 @@ export const initGlobalAds = () => {
     document.head.appendChild(pubScript);
     (window as any).ADSTERRA_PUBLISHER_ID = ADSTERRA_PUBLISHER_ID;
   }
-
-  // Example: Initialize Popunder (replace 'YOUR_POPUNDER_ZONE_ID' with actual ID from dashboard)
-  // loadGlobalScript('popunder', 'YOUR_POPUNDER_ZONE_ID');
   
-  // Example: Initialize Social Bar (replace 'YOUR_SOCIALBAR_ZONE_ID' with actual ID from dashboard)
-  // loadGlobalScript('social_bar', 'YOUR_SOCIALBAR_ZONE_ID');
-};
-
-/**
- * Helper to load global scripts safely without blocking rendering.
- */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const loadGlobalScript = (format: string, zoneId: string) => {
-  const scriptId = `adsterra-${format}`;
-  if (document.getElementById(scriptId)) return;
-
-  const script = document.createElement('script');
-  script.id = scriptId;
-  script.type = 'text/javascript';
-  script.async = true;
-  script.src = `//pl${zoneId}.puhtml.com/${zoneId}/invoke.js`;
-  
-  script.onerror = () => {
-    console.warn(`[Adsterra] Failed to load ${format} script. AdBlocker might be enabled.`);
-  };
-
-  document.head.appendChild(script);
+  detectAdBlock();
 };

@@ -1,5 +1,6 @@
 const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
 let audioCtx: AudioContext | null = null;
+let audioInitialized = false;
 
 export interface AudioSettings {
   volume: number;
@@ -36,12 +37,32 @@ export const updateAudioSettings = (settings: Partial<AudioSettings>) => {
   saveAudioSettings(currentSettings);
 };
 
-const initAudio = () => {
+const initAudioOnInteraction = () => {
+  if (audioInitialized) return;
+  audioInitialized = true;
   if (!audioCtx) {
     audioCtx = new AudioContext();
   }
   if (audioCtx.state === 'suspended') {
-    audioCtx.resume();
+    audioCtx.resume().catch(() => {});
+  }
+  document.removeEventListener('click', initAudioOnInteraction);
+  document.removeEventListener('keydown', initAudioOnInteraction);
+  document.removeEventListener('touchstart', initAudioOnInteraction);
+};
+
+if (typeof document !== 'undefined') {
+  document.addEventListener('click', initAudioOnInteraction);
+  document.addEventListener('keydown', initAudioOnInteraction);
+  document.addEventListener('touchstart', initAudioOnInteraction);
+}
+
+const initAudio = () => {
+  if (!audioCtx) {
+    audioCtx = new AudioContext();
+  }
+  if (audioCtx.state === 'suspended' && audioInitialized) {
+    audioCtx.resume().catch(() => {});
   }
   return audioCtx;
 };

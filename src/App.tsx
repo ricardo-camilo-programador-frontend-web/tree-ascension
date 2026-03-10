@@ -403,7 +403,7 @@ export default function App() {
 
       {/* Top Banner Ad */}
       <div className="w-full bg-stone-950 border-b border-stone-800 flex justify-center py-2 hidden md:flex">
-        <AdsterraAd zoneId="top_banner" width={728} height={90} />
+        <AdsterraAd zone="top_banner" width={728} height={90} />
       </div>
 
       {/* Main Content */}
@@ -1001,7 +1001,7 @@ export default function App() {
               
               {/* Sidebar Ad */}
               <div className="w-full flex justify-center mt-6 mb-2">
-                <AdsterraAd zoneId="sidebar_banner" width={300} height={250} />
+                <AdsterraAd zone="sidebar_banner" width={300} height={250} lazy />
               </div>
             </div>
           </div>
@@ -1010,7 +1010,7 @@ export default function App() {
 
       {/* Bottom Banner Ad */}
       <div className="w-full bg-stone-950 border-t border-stone-900 flex justify-center py-2">
-        <AdsterraAd zoneId="bottom_banner" width={320} height={50} />
+        <AdsterraAd zone="bottom_banner" width={320} height={50} lazy />
       </div>
 
       {/* Footer */}
