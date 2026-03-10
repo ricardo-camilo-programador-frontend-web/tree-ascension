@@ -401,11 +401,6 @@ export default function App() {
         </div>
       </header>
 
-      {/* Top Banner Ad */}
-      <div className="w-full bg-stone-950 border-b border-stone-800 flex justify-center py-2 hidden md:flex">
-        <AdsterraAd zone="top_banner" width={728} height={90} />
-      </div>
-
       {/* Main Content */}
       <main className="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
         
@@ -1008,15 +1003,15 @@ export default function App() {
         </div>
       </main>
 
-      {/* Bottom Banner Ad */}
-      <div className="w-full bg-stone-950 border-t border-stone-900 flex justify-center py-2">
-        <AdsterraAd zone="bottom_banner" width={320} height={50} lazy />
-      </div>
-
       {/* Footer */}
       <footer className="bg-stone-950 border-t border-stone-900 p-2 text-center text-[10px] text-stone-600">
         {t[lang].developedBy} <a href="https://github.com/ricardo-camilo-programador-frontend-web" target="_blank" rel="noreferrer" className="text-emerald-600 hover:underline">Ricardo Camilo</a>
       </footer>
+
+      {/* Bottom Banner Ad */}
+      <div className="w-full bg-stone-950 border-t border-stone-900 flex justify-center py-2">
+        <AdsterraAd zone="bottom_banner" width={320} height={50} lazy />
+      </div>
       </div>
 
       {/* Moringa Info Section */}
