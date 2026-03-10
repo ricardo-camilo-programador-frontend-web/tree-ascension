@@ -3,7 +3,9 @@ import { GameState, createInitialState, updateGame, drawGame, handleCanvasClick,
 import { saveGame, loadGame, exportSave, importSave, resetSave } from './saveSystem';
 import { formatNumber } from './utils/number';
 import { fpsCounter } from './utils/performance';
-import { Zap, Sword, Clock, MousePointer2, Sparkles, ShieldAlert, FastForward, Leaf, Sun, Wind, Skull, Save, Download, RotateCcw, Globe, X, ShoppingCart, Settings, Upload, Copy, Check, Monitor } from 'lucide-react';
+import { getAudioSettings, updateAudioSettings, AudioSettings } from './audio';
+import MoringaInfo from './components/MoringaInfo';
+import { Zap, Sword, Clock, MousePointer2, Sparkles, ShieldAlert, FastForward, Leaf, Sun, Wind, Skull, Save, Download, RotateCcw, Globe, X, ShoppingCart, Settings, Upload, Copy, Check, Monitor, Volume2, VolumeX } from 'lucide-react';
 import { t, Language, languages } from './i18n';
 
 // Optimized UI state mapper
@@ -44,6 +46,7 @@ export default function App() {
   const [importString, setImportString] = useState('');
   const [importError, setImportError] = useState('');
   const [copySuccess, setCopySuccess] = useState(false);
+  const [audio, setAudio] = useState<AudioSettings>(getAudioSettings());
 
   useEffect(() => {
     const savedLang = localStorage.getItem('idleTD_lang') as Language;
@@ -331,10 +334,25 @@ export default function App() {
     setUiState(mapStateToUI(gameState.current));
   };
 
+  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const volume = parseFloat(e.target.value);
+    const newSettings = { ...audio, volume };
+    setAudio(newSettings);
+    updateAudioSettings(newSettings);
+  };
+
+  const toggleMute = () => {
+    const newSettings = { ...audio, muted: !audio.muted };
+    setAudio(newSettings);
+    updateAudioSettings(newSettings);
+  };
+
   return (
-    <div className="h-screen w-screen bg-stone-950 text-stone-100 flex flex-col font-sans overflow-hidden select-none">
-      {/* Header */}
-      <header className="bg-stone-900 border-b border-stone-800 p-4 flex justify-between items-center shadow-md z-10">
+    <div className="min-h-screen bg-stone-950 text-stone-100 flex flex-col font-sans overflow-x-hidden select-none">
+      {/* Game Section Wrapper */}
+      <div className="h-screen flex flex-col flex-shrink-0">
+        {/* Header */}
+        <header className="bg-stone-900 border-b border-stone-800 p-4 flex justify-between items-center shadow-md z-10">
         <div className="flex items-center gap-2 md:gap-4">
           <div className="flex items-center gap-2 bg-stone-950 px-3 md:px-4 py-1.5 rounded-full border border-stone-800">
             <Zap className="w-4 h-4 md:w-5 md:h-5 text-yellow-400 fill-yellow-400" />
@@ -385,15 +403,43 @@ export default function App() {
         {/* Settings Modal */}
         {showSettingsModal && (
           <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md" onClick={() => setShowSettingsModal(false)}>
-            <div className="bg-stone-900 border border-stone-700 rounded-2xl p-6 max-w-lg w-full mx-4 shadow-2xl transform transition-all" onClick={e => e.stopPropagation()}>
-              <div className="flex justify-between items-center mb-6 border-b border-stone-800 pb-4">
-                <h2 className="text-2xl font-black text-stone-200 uppercase tracking-wider">Save Management</h2>
+            <div className="bg-stone-900 border border-stone-700 rounded-2xl p-6 max-w-lg w-full mx-4 shadow-2xl transform transition-all max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+              <div className="flex justify-between items-center mb-6 border-b border-stone-800 pb-4 sticky top-0 bg-stone-900 z-10">
+                <h2 className="text-2xl font-black text-stone-200 uppercase tracking-wider">Settings</h2>
                 <button onClick={() => setShowSettingsModal(false)} className="text-stone-500 hover:text-white">
                   <X className="w-6 h-6" />
                 </button>
               </div>
 
               <div className="space-y-6">
+                {/* Audio Settings */}
+                <div className="p-4 bg-stone-950 rounded-xl border border-stone-800">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="font-bold text-stone-300">Audio</div>
+                    <button 
+                      onClick={toggleMute}
+                      className={`p-2 rounded-lg transition-colors ${audio.muted ? 'bg-red-900/50 text-red-400' : 'bg-stone-800 text-stone-400'}`}
+                    >
+                      {audio.muted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                    </button>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-xs text-stone-500 font-bold uppercase">
+                      <span>Volume</span>
+                      <span>{Math.round(audio.volume * 100)}%</span>
+                    </div>
+                    <input 
+                      type="range" 
+                      min="0" 
+                      max="1" 
+                      step="0.01" 
+                      value={audio.volume}
+                      onChange={handleVolumeChange}
+                      className="w-full h-2 bg-stone-800 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                    />
+                  </div>
+                </div>
+
                 {/* Performance Mode */}
                 <div className="flex items-center justify-between p-4 bg-stone-950 rounded-xl border border-stone-800">
                   <div>
@@ -506,7 +552,7 @@ export default function App() {
         {/* Reset Modal */}
         {showResetModal && (
           <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md">
-            <div className="bg-stone-900 border border-stone-700 rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl transform transition-all text-center">
+            <div className="bg-stone-900 border border-stone-700 rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl transform transition-all text-center max-h-[90vh] overflow-y-auto">
               <h2 className="text-3xl font-black mb-4 text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-orange-500 uppercase tracking-widest">
                 Prestige Reset
               </h2>
@@ -546,7 +592,7 @@ export default function App() {
         {/* Modal Overlay */}
         {uiState.modal.isOpen && uiState.modal.type === 'skillEvolution' && (
           <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
-            <div className="bg-stone-900 border border-stone-700 rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl transform transition-all">
+            <div className="bg-stone-900 border border-stone-700 rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl transform transition-all max-h-[90vh] overflow-y-auto">
               <h2 className="text-2xl font-black text-center mb-2 text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">
                 Skill Evolution!
               </h2>
@@ -571,8 +617,8 @@ export default function App() {
 
         {uiState.modal.isOpen && uiState.modal.type === 'skillInfo' && (
           <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm" onClick={() => handleModalClose()}>
-            <div className="bg-stone-900 border border-stone-700 rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl transform transition-all" onClick={e => e.stopPropagation()}>
-              <div className="flex justify-between items-start mb-4">
+            <div className="bg-stone-900 border border-stone-700 rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl transform transition-all max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+              <div className="flex justify-between items-start mb-4 sticky top-0 bg-stone-900 z-10 pb-2">
                 <h2 className="text-2xl font-black text-emerald-400">
                   {getSkillName(uiState.modal.skillId)}
                 </h2>
@@ -952,6 +998,10 @@ export default function App() {
       <footer className="bg-stone-950 border-t border-stone-900 p-2 text-center text-[10px] text-stone-600">
         {t[lang].developedBy} <a href="https://github.com/ricardo-camilo-programador-frontend-web" target="_blank" rel="noreferrer" className="text-emerald-600 hover:underline">Ricardo Camilo</a>
       </footer>
+      </div>
+
+      {/* Moringa Info Section */}
+      <MoringaInfo />
     </div>
   );
 }

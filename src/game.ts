@@ -408,8 +408,11 @@ export const calculatePlantDamage = (state: GameState): number => {
 };
 
 export const calculateClickDamage = (state: GameState, isCrit: boolean): number => {
-  const baseDamage = calculatePlantDamage(state) * 2 * Math.pow(1.15, state.upgrades.clickLevel - 1);
-  return isCrit ? baseDamage * 2 : baseDamage;
+  const baseClickDamage = 10;
+  const levelMultiplier = Math.pow(1.12, state.upgrades.clickLevel - 1);
+  const plantMultiplier = calculatePlantDamage(state) * 0.5;
+  const totalDamage = (baseClickDamage * levelMultiplier) + plantMultiplier;
+  return isCrit ? totalDamage * 2 : totalDamage;
 };
 
 export const calculateSkillDamage = (state: GameState, skillId: string): number => {
@@ -1060,14 +1063,15 @@ export const handleCanvasClick = (state: GameState, x: number, y: number, canvas
       applyDamageToZombie(state, z, damage, isCrit);
       hitZombie = true;
 
-      for (let k = 0; k < 5; k++) {
+      // Click impact effect
+      for (let k = 0; k < (isCrit ? 15 : 8); k++) {
         state.particles.push({
           id: Math.random().toString(),
           x: internalX, y: internalY,
-          vx: (Math.random() - 0.5) * 200,
-          vy: (Math.random() - 0.5) * 200,
-          life: 0, maxLife: 0.3,
-          color: '#fbbf24', size: 4,
+          vx: (Math.random() - 0.5) * (isCrit ? 400 : 250),
+          vy: (Math.random() - 0.5) * (isCrit ? 400 : 250),
+          life: 0, maxLife: isCrit ? 0.6 : 0.4,
+          color: isCrit ? '#ef4444' : '#fbbf24', size: isCrit ? 5 : 3,
         });
       }
 
@@ -1762,11 +1766,24 @@ function drawZombie(ctx: CanvasRenderingContext2D, z: Zombie, time: number) {
     ctx.shadowBlur = 0;
   }
 
+  // Health Bar above enemy
   const hpPercent = Math.max(0, z.hp / z.maxHp);
-  ctx.fillStyle = '#ef4444';
-  ctx.fillRect(-z.size / 2, -z.size - 15 + wobble, z.size, 4);
-  ctx.fillStyle = '#22c55e';
-  ctx.fillRect(-z.size / 2, -z.size - 15 + wobble, z.size * hpPercent, 4);
+  const barWidth = z.size * 1.2;
+  const barHeight = 4;
+  const barY = -z.size - 15 + wobble;
+
+  // Background (semi-transparent dark)
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+  ctx.fillRect(-barWidth / 2, barY, barWidth, barHeight);
+  
+  // Foreground (color based on health)
+  ctx.fillStyle = hpPercent > 0.5 ? '#22c55e' : hpPercent > 0.2 ? '#eab308' : '#ef4444';
+  ctx.fillRect(-barWidth / 2, barY, barWidth * hpPercent, barHeight);
+
+  // Border
+  ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(-barWidth / 2, barY, barWidth, barHeight);
 
   ctx.restore();
 }
