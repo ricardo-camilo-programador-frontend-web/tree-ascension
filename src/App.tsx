@@ -5,6 +5,8 @@ import { formatNumber } from './utils/number';
 import { fpsCounter } from './utils/performance';
 import { getAudioSettings, updateAudioSettings, AudioSettings } from './audio';
 import MoringaInfo from './components/MoringaInfo';
+import { initGlobalAds } from './ads/adsterra';
+import AdsterraAd from './components/AdsterraAd';
 import { Zap, Sword, Clock, MousePointer2, Sparkles, ShieldAlert, FastForward, Leaf, Sun, Wind, Skull, Save, Download, RotateCcw, Globe, X, ShoppingCart, Settings, Upload, Copy, Check, Monitor, Volume2, VolumeX } from 'lucide-react';
 import { t, Language, languages } from './i18n';
 
@@ -49,6 +51,8 @@ export default function App() {
   const [audio, setAudio] = useState<AudioSettings>(getAudioSettings());
 
   useEffect(() => {
+    initGlobalAds();
+    
     const savedLang = localStorage.getItem('idleTD_lang') as Language;
     if (savedLang && languages.some(l => l.code === savedLang)) {
       setLang(savedLang);
@@ -396,6 +400,11 @@ export default function App() {
           </div>
         </div>
       </header>
+
+      {/* Top Banner Ad */}
+      <div className="w-full bg-stone-950 border-b border-stone-800 flex justify-center py-2 hidden md:flex">
+        <AdsterraAd zoneId="top_banner" width={728} height={90} />
+      </div>
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
@@ -989,10 +998,20 @@ export default function App() {
                   })()}
                 </div>
               </div>
+              
+              {/* Sidebar Ad */}
+              <div className="w-full flex justify-center mt-6 mb-2">
+                <AdsterraAd zoneId="sidebar_banner" width={300} height={250} />
+              </div>
             </div>
           </div>
         </div>
       </main>
+
+      {/* Bottom Banner Ad */}
+      <div className="w-full bg-stone-950 border-t border-stone-900 flex justify-center py-2">
+        <AdsterraAd zoneId="bottom_banner" width={320} height={50} />
+      </div>
 
       {/* Footer */}
       <footer className="bg-stone-950 border-t border-stone-900 p-2 text-center text-[10px] text-stone-600">
