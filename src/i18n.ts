@@ -122,6 +122,57 @@ type Translations = {
     ability3: string;
     ability4: string;
     moringa: MoringaTranslations;
+    // Progress system translations
+    progressTitle?: string;
+    progressScore?: string;
+    statistics?: string;
+    resets?: string;
+    totalUpgrades?: string;
+    evolutions?: string;
+    damageMultiplier?: string;
+    speedMultiplier?: string;
+    playTime?: string;
+    achievements?: string;
+    milestones?: string;
+    nextMilestones?: string;
+    milestoneWave50?: string;
+    milestonePlant50?: string;
+    milestoneFirstReset?: string;
+    milestoneFirstResetDesc?: string;
+    milestoneAllAchievements?: string;
+    locked?: string;
+    close?: string;
+    achievement1Title?: string;
+    achievement1Desc?: string;
+    achievement2Title?: string;
+    achievement2Desc?: string;
+    achievement3Title?: string;
+    achievement3Desc?: string;
+    achievement4Title?: string;
+    achievement4Desc?: string;
+    achievement5Title?: string;
+    achievement5Desc?: string;
+    achievement6Title?: string;
+    achievement6Desc?: string;
+    achievement7Title?: string;
+    achievement7Desc?: string;
+    achievement8Title?: string;
+    achievement8Desc?: string;
+    achievement9Title?: string;
+    achievement9Desc?: string;
+    achievement10Title?: string;
+    achievement10Desc?: string;
+    achievement11Title?: string;
+    achievement11Desc?: string;
+    achievement12Title?: string;
+    achievement12Desc?: string;
+    achievement13Title?: string;
+    achievement13Desc?: string;
+    achievement14Title?: string;
+    achievement14Desc?: string;
+    achievement15Title?: string;
+    achievement15Desc?: string;
+    progressBtn?: string;
   };
 };
 
@@ -134,6 +185,28 @@ export const t: Translations = {
     saveGame: 'Save', loadGame: 'Load', resetGame: 'Reset', options: 'Options', stats: 'Stats',
     totalEnergy: 'Total Energy', zombiesKilled: 'Zombies Killed', developedBy: 'Developed by', grassInfo: 'Damages walking zombies',
     ability1: 'Sun Burst', ability2: 'Root Entangle', ability3: 'Poison Cloud', ability4: 'Sol Generator',
+    // Progress system
+    progressTitle: 'Progress', progressScore: 'Progress Score', statistics: 'Statistics', resets: 'Resets',
+    totalUpgrades: 'Total Upgrades', evolutions: 'Evolutions', damageMultiplier: 'Damage Mult', speedMultiplier: 'Speed Mult',
+    playTime: 'Play Time', achievements: 'Achievements', milestones: 'Milestones', nextMilestones: 'Next Milestones',
+    milestoneWave50: 'Reach Wave 50', milestonePlant50: 'Reach Plant Level 50', milestoneFirstReset: 'First Prestige Reset',
+    milestoneFirstResetDesc: 'Reach Wave 50 or Plant Level 50 to unlock', milestoneAllAchievements: 'Complete All Achievements',
+    locked: 'Locked', close: 'Close', progressBtn: 'Progress',
+    achievement1Title: 'First Blood', achievement1Desc: 'Complete your first wave',
+    achievement2Title: 'Wave Warrior', achievement2Desc: 'Reach wave 10',
+    achievement3Title: 'Wave Master', achievement3Desc: 'Reach wave 50',
+    achievement4Title: 'Wave Legend', achievement4Desc: 'Reach wave 100',
+    achievement5Title: 'Seedling', achievement5Desc: 'Reach plant level 10',
+    achievement6Title: 'Sapling', achievement6Desc: 'Reach plant level 50',
+    achievement7Title: 'Ancient Tree', achievement7Desc: 'Reach plant level 100',
+    achievement8Title: 'Rebirth', achievement8Desc: 'Perform your first prestige reset',
+    achievement9Title: 'Phoenix', achievement9Desc: 'Perform 5 prestige resets',
+    achievement10Title: 'Immortal', achievement10Desc: 'Perform 10 prestige resets',
+    achievement11Title: 'Energy Hoarder', achievement11Desc: 'Accumulate 1 million energy',
+    achievement12Title: 'Energy Tycoon', achievement12Desc: 'Accumulate 1 billion energy',
+    achievement13Title: 'Skill Master', achievement13Desc: 'Unlock all basic abilities',
+    achievement14Title: 'Crusher', achievement14Desc: 'Reach 10x damage multiplier',
+    achievement15Title: 'Speed Demon', achievement15Desc: 'Reach 5x attack speed multiplier',
     moringa: {
       title: 'Moringa Oleifera – The Tree of Life',
       introTitle: '1. Introduction',
@@ -207,6 +280,28 @@ export const t: Translations = {
     saveGame: 'Salvar', loadGame: 'Carregar', resetGame: 'Resetar', options: 'Opções', stats: 'Estatísticas',
     totalEnergy: 'Energia Total', zombiesKilled: 'Zumbis Mortos', developedBy: 'Desenvolvido por', grassInfo: 'Causa dano em zumbis andando',
     ability1: 'Explosão Solar', ability2: 'Enraizar', ability3: 'Nuvem de Veneno', ability4: 'Gerador de Sol',
+    // Progress system
+    progressTitle: 'Progresso', progressScore: 'Pontuação', statistics: 'Estatísticas', resets: 'Resets',
+    totalUpgrades: 'Total de Upgrades', evolutions: 'Evoluções', damageMultiplier: 'Mult Dano', speedMultiplier: 'Mult Veloc',
+    playTime: 'Tempo de Jogo', achievements: 'Conquistas', milestones: 'Marcos', nextMilestones: 'Próximos Marcos',
+    milestoneWave50: 'Alcançar Onda 50', milestonePlant50: 'Alcançar Nível 50', milestoneFirstReset: 'Primeiro Reset',
+    milestoneFirstResetDesc: 'Alcance Onda 50 ou Nível 50 para desbloquear', milestoneAllAchievements: 'Completar Todas Conquistas',
+    locked: 'Bloqueado', close: 'Fechar', progressBtn: 'Progresso',
+    achievement1Title: 'Primeiro Sangue', achievement1Desc: 'Complete sua primeira onda',
+    achievement2Title: 'Guerreiro', achievement2Desc: 'Alcance a onda 10',
+    achievement3Title: 'Mestre das Ondas', achievement3Desc: 'Alcance a onda 50',
+    achievement4Title: 'Lenda das Ondas', achievement4Desc: 'Alcance a onda 100',
+    achievement5Title: 'Muda', achievement5Desc: 'Alcance nível 10 da planta',
+    achievement6Title: 'Broto', achievement6Desc: 'Alcance nível 50 da planta',
+    achievement7Title: 'Árvore Ancestral', achievement7Desc: 'Alcance nível 100 da planta',
+    achievement8Title: 'Renascimento', achievement8Desc: 'Faça seu primeiro reset de prestígio',
+    achievement9Title: 'Fênix', achievement9Desc: 'Faça 5 resets de prestígio',
+    achievement10Title: 'Imortal', achievement10Desc: 'Faça 10 resets de prestígio',
+    achievement11Title: 'Acumulador', achievement11Desc: 'Acumule 1 milhão de energia',
+    achievement12Title: 'Magnata', achievement12Desc: 'Acumule 1 bilhão de energia',
+    achievement13Title: 'Mestre das Habilidades', achievement13Desc: 'Desbloqueie todas as habilidades básicas',
+    achievement14Title: 'Esmagador', achievement14Desc: 'Alcance multiplicador de dano 10x',
+    achievement15Title: 'Demônio da Velocidade', achievement15Desc: 'Alcance velocidade de ataque 5x',
     moringa: {
       title: 'Moringa Oleifera – A Árvore da Vida',
       introTitle: '1. Introdução',

@@ -5,9 +5,10 @@ import { formatNumber } from './utils/number';
 import { fpsCounter } from './utils/performance';
 import { getAudioSettings, updateAudioSettings, AudioSettings } from './audio';
 import MoringaInfo from './components/MoringaInfo';
+import ProgressPanel from './components/ProgressPanel';
 import { initGlobalAds } from './ads/adsterra';
 import AdsterraAd from './components/AdsterraAd';
-import { Zap, Sword, Clock, MousePointer2, Sparkles, ShieldAlert, FastForward, Leaf, Sun, Wind, Skull, Save, Download, RotateCcw, Globe, X, ShoppingCart, Settings, Upload, Copy, Check, Monitor, Volume2, VolumeX } from 'lucide-react';
+import { Zap, Sword, Clock, MousePointer2, Sparkles, ShieldAlert, FastForward, Leaf, Sun, Wind, Skull, Save, Download, RotateCcw, Globe, X, ShoppingCart, Settings, Upload, Copy, Check, Monitor, Volume2, VolumeX, Trophy } from 'lucide-react';
 import { t, Language, languages } from './i18n';
 
 // Optimized UI state mapper
@@ -49,6 +50,11 @@ export default function App() {
   const [importError, setImportError] = useState('');
   const [copySuccess, setCopySuccess] = useState(false);
   const [audio, setAudio] = useState<AudioSettings>(getAudioSettings());
+  const [showProgressPanel, setShowProgressPanel] = useState(false);
+  const [totalPlayTime, setTotalPlayTime] = useState(() => {
+    const saved = localStorage.getItem('idleTD_playTime');
+    return saved ? parseInt(saved, 10) : 0;
+  });
 
   useEffect(() => {
     initGlobalAds();
@@ -102,11 +108,21 @@ export default function App() {
       saveGame(gameState.current);
     }, 10000); // Save every 10 seconds
 
+    // Track play time
+    const playTimeInterval = setInterval(() => {
+      setTotalPlayTime(prev => {
+        const newTime = prev + 1;
+        localStorage.setItem('idleTD_playTime', newTime.toString());
+        return newTime;
+      });
+    }, 1000);
+
     return () => {
       window.removeEventListener('resize', resize);
       cancelAnimationFrame(animationFrameId);
       clearInterval(uiInterval);
       clearInterval(saveInterval);
+      clearInterval(playTimeInterval);
     };
   }, []);
 
@@ -384,12 +400,19 @@ export default function App() {
           </div>
           <div className="flex items-center gap-1 md:gap-2">
              <button 
-               onClick={() => setShowSettingsModal(true)}
-               className="p-1.5 md:p-2 bg-stone-800 rounded hover:bg-stone-700 text-stone-400 hover:text-white transition-colors"
-             >
-               <Settings className="w-4 h-4 md:w-5 md:h-5" />
-             </button>
-             <Globe className="w-3 h-3 md:w-4 md:h-4 text-stone-400 ml-2" />
+                onClick={() => setShowSettingsModal(true)}
+                className="p-1.5 md:p-2 bg-stone-800 rounded hover:bg-stone-700 text-stone-400 hover:text-white transition-colors"
+              >
+                <Settings className="w-4 h-4 md:w-5 md:h-5" />
+              </button>
+             <button 
+                onClick={() => setShowProgressPanel(true)}
+                className="p-1.5 md:p-2 bg-stone-800 rounded hover:bg-stone-700 text-stone-400 hover:text-yellow-400 transition-colors"
+                title={t[lang].progressTitle || 'Progress'}
+              >
+                <Trophy className="w-4 h-4 md:w-5 md:h-5" />
+              </button>
+              <Globe className="w-3 h-3 md:w-4 md:h-4 text-stone-400 ml-2" />
              <select 
                value={lang} 
                onChange={handleLangChange}
@@ -1016,6 +1039,16 @@ export default function App() {
 
       {/* Moringa Info Section */}
       <MoringaInfo />
+
+      {/* Progress Panel */}
+      {showProgressPanel && (
+        <ProgressPanel 
+          lang={lang}
+          uiState={uiState}
+          totalPlayTime={totalPlayTime}
+          onClose={() => setShowProgressPanel(false)}
+        />
+      )}
     </div>
   );
 }
