@@ -15,9 +15,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: lts/*
+      - name: Setup PATH
+        run: echo "/usr/local/bin" >> $GITHUB_PATH
 
       - name: Instalar dependencias
         run: npm ci
@@ -37,9 +36,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: lts/*
+      - name: Setup PATH
+        run: echo "/usr/local/bin" >> $GITHUB_PATH
 
       - name: Instalar dependencias
         run: npm ci
@@ -62,9 +60,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: lts/*
+      - name: Setup PATH
+        run: echo "/usr/local/bin" >> $GITHUB_PATH
 
       - name: Instalar dependencias
         run: npm ci
