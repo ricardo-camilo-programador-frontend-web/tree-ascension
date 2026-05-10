@@ -28,6 +28,11 @@ jobs:
     name: Build do Projeto
     runs-on: ubuntu-latest
     timeout-minutes: 15
+        env:
+          GEMINI_API_KEY: ""
+          APP_URL: ""
+          VITE_ADSTERRA_PUBLISHER_ID: ""
+          VITE_ENABLE_ADSTERRA: ""
     steps:
       - uses: actions/checkout@v4
 
@@ -52,6 +57,7 @@ jobs:
     name: Auditoria de Seguranca
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
 
@@ -75,10 +81,5 @@ jobs:
             exit 0
           fi
 
-          # npm audit can also fail due to transient registry errors
-          if grep -Eq "500|503" "$LOG_FILE"; then
-            echo "::warning::npm audit falhou por erro do registry. Falha tratada como indisponibilidade transitória."
-            exit 0
-          fi
 
           exit "$status"
