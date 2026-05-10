@@ -1,0 +1,84 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    name: Validar Linting e Formatacao
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Executar Lint
+        run: npm run lint
+
+  build:
+    name: Build do Projeto
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Build do projeto
+        run: npm run build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-dist
+          path: dist/
+          retention-days: 7
+
+  security:
+    name: Auditoria de Seguranca
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Auditoria de vulnerabilidades
+        shell: bash
+        run: |
+          set -o pipefail
+          LOG_FILE="$(mktemp)"
+
+          npm audit --audit-level moderate 2>&1 | tee "$LOG_FILE"
+          status=${PIPESTATUS[0]}
+
+          if [ "$status" -eq 0 ]; then
+            exit 0
+          fi
+
+          # npm audit can also fail due to transient registry errors
+          if grep -Eq "500|503" "$LOG_FILE"; then
+            echo "::warning::npm audit falhou por erro do registry. Falha tratada como indisponibilidade transitória."
+            exit 0
+          fi
+
+          exit "$status"
