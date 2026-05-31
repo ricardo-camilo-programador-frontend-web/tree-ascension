@@ -9,6 +9,8 @@ import { initGlobalAds } from './ads/adsterra';
 import AdsterraAd from './components/AdsterraAd';
 import { Zap, Sword, Clock, MousePointer2, Sparkles, ShieldAlert, FastForward, Leaf, Sun, Wind, Skull, Save, Download, RotateCcw, Globe, X, ShoppingCart, Settings, Upload, Copy, Check, Monitor, Volume2, VolumeX } from 'lucide-react';
 import { t, Language, languages } from './i18n';
+import { ToastContainer, showToast, useToast } from './components/Toast';
+import ConfirmModal from './components/ConfirmModal';
 
 // Optimized UI state mapper
 const mapStateToUI = (state: GameState) => ({
@@ -49,6 +51,8 @@ export default function App() {
   const [importError, setImportError] = useState('');
   const [copySuccess, setCopySuccess] = useState(false);
   const [audio, setAudio] = useState<AudioSettings>(getAudioSettings());
+  const [confirmModal, setConfirmModal] = useState<{ open: boolean; title: string; message: string; onConfirm: () => void }>({ open: false, title: '', message: '', onConfirm: () => {} });
+  useToast();
 
   useEffect(() => {
     initGlobalAds();
@@ -137,7 +141,7 @@ export default function App() {
 
   const handleManualSave = () => {
     saveGame(gameState.current);
-    alert(t[lang].saveGame + ' OK!');
+    showToast(t[lang].saveGame + ' OK!', 'success');
   };
 
   const handleExport = () => {
@@ -166,17 +170,23 @@ export default function App() {
       setImportString('');
       setImportError('');
       setShowSettingsModal(false);
-      alert('Save imported successfully!');
+      showToast('Save imported successfully!', 'success');
     } catch (e) {
       setImportError('Invalid save string');
     }
   };
 
   const handleHardReset = () => {
-    if (confirm('Are you sure? This will wipe your save completely!')) {
-      resetSave();
-      window.location.reload();
-    }
+    setConfirmModal({
+      open: true,
+      title: 'Hard Reset',
+      message: 'Are you sure? This will wipe your save completely!',
+      onConfirm: () => {
+        setConfirmModal(prev => ({ ...prev, open: false }));
+        resetSave();
+        window.location.reload();
+      },
+    });
   };
 
   const handleResetClick = () => {
@@ -190,7 +200,7 @@ export default function App() {
     if (success) {
       setShowResetModal(false);
       setUiState(mapStateToUI(gameState.current));
-      alert(`Prestige Activated! +${formatNumber(gameState.current.energy)} Starting Energy`);
+      showToast(`Prestige Activated! +${formatNumber(gameState.current.energy)} Starting Energy`, 'info');
     }
   };
 
@@ -1016,6 +1026,21 @@ export default function App() {
 
       {/* Moringa Info Section */}
       <MoringaInfo />
+
+      {/* Toast Notifications */}
+      <ToastContainer />
+
+      {/* Hard Reset Confirm Modal */}
+      <ConfirmModal
+        open={confirmModal.open}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        onConfirm={confirmModal.onConfirm}
+        onCancel={() => setConfirmModal(prev => ({ ...prev, open: false }))}
+        confirmText="Wipe Save"
+        cancelText="Cancel"
+        destructive
+      />
     </div>
   );
 }

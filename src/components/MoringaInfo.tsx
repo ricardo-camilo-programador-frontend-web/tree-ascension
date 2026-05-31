@@ -1,110 +1,145 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Info, Globe, Zap, HeartPulse, Utensils, Coffee, AlertTriangle, Sparkles, Leaf, Droplets, FlaskConical, ShieldCheck } from 'lucide-react';
+import { t, Language, languages } from '../i18n';
+
+const useLang = (): Language => {
+  const [lang, setLang] = useState<Language>(() => {
+    const saved = localStorage.getItem('idleTD_lang') as Language;
+    if (saved && languages.some(l => l.code === saved)) return saved;
+    return 'en';
+  });
+
+  useEffect(() => {
+    const onStorage = () => {
+      const saved = localStorage.getItem('idleTD_lang') as Language;
+      if (saved && languages.some(l => l.code === saved)) setLang(saved);
+    };
+    window.addEventListener('storage', onStorage);
+
+    // Also poll localStorage for changes within the same tab
+    const interval = setInterval(() => {
+      const saved = localStorage.getItem('idleTD_lang') as Language;
+      if (saved && saved !== lang && languages.some(l => l.code === saved)) {
+        setLang(saved);
+      }
+    }, 500);
+
+    return () => {
+      window.removeEventListener('storage', onStorage);
+      clearInterval(interval);
+    };
+  }, [lang]);
+
+  return lang;
+};
 
 const MoringaInfo: React.FC = () => {
+  const lang = useLang();
+  const m = t[lang].moringa;
+
   return (
     <section id="moringa-info" className="bg-stone-50 text-stone-900 py-16 px-4 md:px-8 lg:px-16 font-sans">
       <div className="max-w-5xl mx-auto">
         {/* Header */}
         <div className="text-center mb-16">
           <h1 className="text-4xl md:text-6xl font-black text-emerald-800 mb-4 tracking-tight">
-            Moringa Oleifera – A Árvore da Vida
+            {m.title}
           </h1>
           <div className="w-24 h-1.5 bg-emerald-500 mx-auto rounded-full"></div>
         </div>
 
-        {/* 1. Introdução */}
+        {/* 1. Introduction */}
         <div className="mb-16 grid md:grid-cols-2 gap-8 items-center">
           <div>
             <h2 className="text-3xl font-bold text-emerald-700 mb-6 flex items-center gap-3">
-              <Info className="w-8 h-8" /> 1. Introdução
+              <Info className="w-8 h-8" /> {m.introTitle}
             </h2>
             <p className="text-lg leading-relaxed text-stone-700 mb-4">
-              A <span className="font-bold italic">Moringa oleifera</span> é uma planta da família Moringaceae, amplamente conhecida por diversos nomes populares como <strong>moringa</strong>, <strong>acácia-branca</strong>, <strong>árvore-rabanete-de-cavalo</strong>, <strong>moringueiro</strong> e <strong>quiabo-de-quina</strong>.
+              {m.introText1}
             </p>
             <p className="text-lg leading-relaxed text-stone-700">
-              Ela é carinhosamente chamada de <strong>"árvore da vida"</strong> devido à sua incrível capacidade de sobrevivência em condições adversas e, principalmente, pelo fato de quase todas as suas partes serem comestíveis e possuírem propriedades medicinais e nutricionais extraordinárias.
+              {m.introText2}
             </p>
           </div>
           <div className="bg-emerald-100 rounded-3xl p-8 flex items-center justify-center">
             <Leaf className="w-32 h-32 text-emerald-600 opacity-20 absolute" />
             <div className="relative z-10 text-center">
               <span className="text-5xl block mb-2">🌿</span>
-              <p className="font-serif italic text-emerald-800 text-xl">"Uma solução natural para a saúde global."</p>
+              <p className="font-serif italic text-emerald-800 text-xl">{m.introQuote}</p>
             </div>
           </div>
         </div>
 
-        {/* 2. Origem e características */}
+        {/* 2. Origin and Characteristics */}
         <div className="mb-16">
           <h2 className="text-3xl font-bold text-emerald-700 mb-8 flex items-center gap-3">
-            <Globe className="w-8 h-8" /> 2. Origem e Características
+            <Globe className="w-8 h-8" /> {m.originTitle}
           </h2>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-100">
-              <div className="text-emerald-500 mb-3 font-bold uppercase text-xs tracking-widest">Origem</div>
-              <p className="text-stone-700">Nativa das planícies do Himalaia, no norte da <strong>Índia</strong>.</p>
+              <div className="text-emerald-500 mb-3 font-bold uppercase text-xs tracking-widest">{m.originLabel}</div>
+              <p className="text-stone-700">{m.originText}</p>
             </div>
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-100">
-              <div className="text-emerald-500 mb-3 font-bold uppercase text-xs tracking-widest">Cultivo</div>
-              <p className="text-stone-700">Adaptada a regiões <strong>tropicais e subtropicais</strong> em todo o mundo.</p>
+              <div className="text-emerald-500 mb-3 font-bold uppercase text-xs tracking-widest">{m.cultivationLabel}</div>
+              <p className="text-stone-700">{m.cultivationText}</p>
             </div>
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-100">
-              <div className="text-emerald-500 mb-3 font-bold uppercase text-xs tracking-widest">Crescimento</div>
-              <p className="text-stone-700">Extremamente <strong>rápido</strong>, podendo atingir 3 metros no primeiro ano.</p>
+              <div className="text-emerald-500 mb-3 font-bold uppercase text-xs tracking-widest">{m.growthLabel}</div>
+              <p className="text-stone-700">{m.growthText}</p>
             </div>
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-100">
-              <div className="text-emerald-500 mb-3 font-bold uppercase text-xs tracking-widest">Aparência</div>
-              <p className="text-stone-700">Possui folhas pequenas e ovais, flores brancas perfumadas e vagens longas.</p>
+              <div className="text-emerald-500 mb-3 font-bold uppercase text-xs tracking-widest">{m.appearanceLabel}</div>
+              <p className="text-stone-700">{m.appearanceText}</p>
             </div>
           </div>
         </div>
 
-        {/* 3. Valor nutricional */}
+        {/* 3. Nutritional Value */}
         <div className="mb-16 bg-emerald-900 text-white rounded-3xl p-8 md:p-12 shadow-xl">
           <h2 className="text-3xl font-bold mb-8 flex items-center gap-3">
-            <Zap className="w-8 h-8 text-yellow-400" /> 3. Valor Nutricional
+            <Zap className="w-8 h-8 text-yellow-400" /> {m.nutritionTitle}
           </h2>
           <p className="text-xl mb-8 opacity-90">
-            A moringa é considerada um <strong>superalimento</strong>. Suas folhas contêm uma densidade nutricional raramente encontrada em outras plantas.
+            {m.nutritionText}
           </p>
           <div className="grid md:grid-cols-2 gap-8">
             <ul className="space-y-4">
               <li className="flex items-start gap-3">
                 <div className="bg-emerald-800 p-1 rounded-full mt-1"><Sparkles className="w-4 h-4 text-emerald-300" /></div>
-                <span><strong>Vitaminas:</strong> Rica em A, C, E e complexo B (especialmente B1, B2 e B3).</span>
+                <span>{m.nutritionVitamins}</span>
               </li>
               <li className="flex items-start gap-3">
                 <div className="bg-emerald-800 p-1 rounded-full mt-1"><Sparkles className="w-4 h-4 text-emerald-300" /></div>
-                <span><strong>Minerais:</strong> Alta concentração de Cálcio, Ferro, Potássio e Magnésio.</span>
+                <span>{m.nutritionMinerals}</span>
               </li>
             </ul>
             <ul className="space-y-4">
               <li className="flex items-start gap-3">
                 <div className="bg-emerald-800 p-1 rounded-full mt-1"><Sparkles className="w-4 h-4 text-emerald-300" /></div>
-                <span><strong>Proteínas:</strong> Contém todos os aminoácidos essenciais, sendo uma excelente fonte vegetal.</span>
+                <span>{m.nutritionProteins}</span>
               </li>
               <li className="flex items-start gap-3">
                 <div className="bg-emerald-800 p-1 rounded-full mt-1"><Sparkles className="w-4 h-4 text-emerald-300" /></div>
-                <span><strong>Antioxidantes:</strong> Rica em quercetina e ácido clorogênico.</span>
+                <span>{m.nutritionAntioxidants}</span>
               </li>
             </ul>
           </div>
         </div>
 
-        {/* 4. Benefícios potenciais */}
+        {/* 4. Potential Health Benefits */}
         <div className="mb-16">
           <h2 className="text-3xl font-bold text-emerald-700 mb-8 flex items-center gap-3">
-            <HeartPulse className="w-8 h-8" /> 4. Benefícios Potenciais para a Saúde
+            <HeartPulse className="w-8 h-8" /> {m.benefitsTitle}
           </h2>
           <div className="grid md:grid-cols-3 gap-6">
             {[
-              { title: 'Sistema Imunológico', desc: 'Fortalece as defesas naturais do corpo contra infecções.' },
-              { title: 'Ação Antioxidante', desc: 'Combate os radicais livres e retarda o envelhecimento celular.' },
-              { title: 'Anti-inflamatório', desc: 'Ajuda a reduzir inflamações crônicas no organismo.' },
-              { title: 'Saúde Cardiovascular', desc: 'Auxilia na manutenção de níveis saudáveis de colesterol.' },
-              { title: 'Controle da Glicose', desc: 'Pode ajudar a estabilizar os níveis de açúcar no sangue.' },
-              { title: 'Combate à Desnutrição', desc: 'Utilizada em programas humanitários devido ao seu alto valor nutritivo.' },
+              { title: m.benefit1Title, desc: m.benefit1Desc },
+              { title: m.benefit2Title, desc: m.benefit2Desc },
+              { title: m.benefit3Title, desc: m.benefit3Desc },
+              { title: m.benefit4Title, desc: m.benefit4Desc },
+              { title: m.benefit5Title, desc: m.benefit5Desc },
+              { title: m.benefit6Title, desc: m.benefit6Desc },
             ].map((item, i) => (
               <div key={i} className="bg-stone-100 p-6 rounded-2xl border-l-4 border-emerald-500">
                 <h3 className="font-bold text-emerald-800 mb-2">{item.title}</h3>
@@ -114,133 +149,133 @@ const MoringaInfo: React.FC = () => {
           </div>
           <div className="mt-8 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-4 text-amber-800 text-sm italic">
             <AlertTriangle className="w-6 h-6 flex-shrink-0" />
-            <p>Observação: O consumo de moringa é um complemento nutricional e não substitui tratamentos médicos convencionais.</p>
+            <p>{m.medicalNote}</p>
           </div>
         </div>
 
-        {/* 5. Usos da planta */}
+        {/* 5. Uses of the Plant */}
         <div className="mb-16">
           <h2 className="text-3xl font-bold text-emerald-700 mb-8 flex items-center gap-3">
-            <Utensils className="w-8 h-8" /> 5. Usos da Planta
+            <Utensils className="w-8 h-8" /> {m.usesTitle}
           </h2>
           <div className="space-y-8">
             <div className="bg-white p-8 rounded-3xl shadow-sm border border-stone-100">
-              <h3 className="text-xl font-bold text-emerald-600 mb-4 flex items-center gap-2">Uso Alimentar</h3>
+              <h3 className="text-xl font-bold text-emerald-600 mb-4 flex items-center gap-2">{m.useFoodTitle}</h3>
               <ul className="list-disc list-inside text-stone-700 space-y-2">
-                <li><strong>Folhas:</strong> Consumidas frescas em saladas ou secas em chás.</li>
-                <li><strong>Pó:</strong> Adicionado a sucos, sopas e vitaminas.</li>
-                <li><strong>Vagens:</strong> Cozidas de forma semelhante ao feijão-verde.</li>
+                <li>{m.useFoodLeaf}</li>
+                <li>{m.useFoodPowder}</li>
+                <li>{m.useFoodPods}</li>
               </ul>
             </div>
             <div className="grid md:grid-cols-2 gap-8">
               <div className="bg-white p-8 rounded-3xl shadow-sm border border-stone-100">
-                <h3 className="text-xl font-bold text-emerald-600 mb-4 flex items-center gap-2">Uso Medicinal</h3>
-                <p className="text-stone-700">Utilizada há milênios na medicina Ayurveda para tratar centenas de condições de saúde.</p>
+                <h3 className="text-xl font-bold text-emerald-600 mb-4 flex items-center gap-2">{m.useMedicinalTitle}</h3>
+                <p className="text-stone-700">{m.useMedicinalText}</p>
               </div>
               <div className="bg-white p-8 rounded-3xl shadow-sm border border-stone-100">
-                <h3 className="text-xl font-bold text-emerald-600 mb-4 flex items-center gap-2">Uso Industrial</h3>
+                <h3 className="text-xl font-bold text-emerald-600 mb-4 flex items-center gap-2">{m.useIndustrialTitle}</h3>
                 <ul className="list-disc list-inside text-stone-700 space-y-2">
-                  <li><strong>Óleo:</strong> Extraído das sementes para culinária e cosméticos.</li>
-                  <li><strong>Purificação:</strong> Sementes moídas ajudam a limpar água turva.</li>
+                  <li>{m.useIndustrialOil}</li>
+                  <li>{m.useIndustrialPurification}</li>
                 </ul>
               </div>
             </div>
           </div>
         </div>
 
-        {/* 6. Como consumir */}
+        {/* 6. How to Consume */}
         <div className="mb-16 grid md:grid-cols-2 gap-12 items-center">
           <div className="order-2 md:order-1">
             <h2 className="text-3xl font-bold text-emerald-700 mb-8 flex items-center gap-3">
-              <Coffee className="w-8 h-8" /> 6. Como Consumir
+              <Coffee className="w-8 h-8" /> {m.consumptionTitle}
             </h2>
             <div className="space-y-4">
               <div className="flex gap-4">
                 <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center font-bold text-emerald-700 flex-shrink-0">1</div>
                 <div>
-                  <h4 className="font-bold text-stone-800">Chá de Moringa</h4>
-                  <p className="text-stone-600">Infusão das folhas secas em água quente.</p>
+                  <h4 className="font-bold text-stone-800">{m.consumptionTeaTitle}</h4>
+                  <p className="text-stone-600">{m.consumptionTeaDesc}</p>
                 </div>
               </div>
               <div className="flex gap-4">
                 <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center font-bold text-emerald-700 flex-shrink-0">2</div>
                 <div>
-                  <h4 className="font-bold text-stone-800">Folhas Frescas</h4>
-                  <p className="text-stone-600">Podem ser refogadas ou usadas em saladas e omeletes.</p>
+                  <h4 className="font-bold text-stone-800">{m.consumptionLeafTitle}</h4>
+                  <p className="text-stone-600">{m.consumptionLeafDesc}</p>
                 </div>
               </div>
               <div className="flex gap-4">
                 <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center font-bold text-emerald-700 flex-shrink-0">3</div>
                 <div>
-                  <h4 className="font-bold text-stone-800">Pó em Vitaminas</h4>
-                  <p className="text-stone-600">Uma colher de chá em sucos ou smoothies.</p>
+                  <h4 className="font-bold text-stone-800">{m.consumptionPowderTitle}</h4>
+                  <p className="text-stone-600">{m.consumptionPowderDesc}</p>
                 </div>
               </div>
               <div className="flex gap-4">
                 <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center font-bold text-emerald-700 flex-shrink-0">4</div>
                 <div>
-                  <h4 className="font-bold text-stone-800">Cápsulas</h4>
-                  <p className="text-stone-600">Forma prática de suplementação concentrada.</p>
+                  <h4 className="font-bold text-stone-800">{m.consumptionCapsulesTitle}</h4>
+                  <p className="text-stone-600">{m.consumptionCapsulesDesc}</p>
                 </div>
               </div>
             </div>
           </div>
           <div className="order-1 md:order-2 bg-stone-200 rounded-3xl h-64 md:h-full flex items-center justify-center overflow-hidden">
-             <img 
-               src="https://picsum.photos/seed/moringa/800/600" 
-               alt="Moringa Leaves" 
+             <img
+               src="https://picsum.photos/seed/moringa/800/600"
+               alt="Moringa Leaves"
                className="w-full h-full object-cover opacity-80"
                referrerPolicy="no-referrer"
              />
           </div>
         </div>
 
-        {/* 7. Cuidados e contraindicações */}
+        {/* 7. Precautions and Contraindications */}
         <div className="mb-16 bg-red-50 border border-red-100 rounded-3xl p-8">
           <h2 className="text-3xl font-bold text-red-800 mb-6 flex items-center gap-3">
-            <ShieldCheck className="w-8 h-8" /> 7. Cuidados e Contraindicações
+            <ShieldCheck className="w-8 h-8" /> {m.precautionsTitle}
           </h2>
           <ul className="space-y-4 text-red-900">
             <li className="flex items-start gap-3">
               <AlertTriangle className="w-5 h-5 mt-1 flex-shrink-0" />
-              <span><strong>Gestantes:</strong> Devem evitar o consumo sem orientação médica, pois algumas partes podem ter efeitos abortivos.</span>
+              <span>{m.precautionPregnant}</span>
             </li>
             <li className="flex items-start gap-3">
               <AlertTriangle className="w-5 h-5 mt-1 flex-shrink-0" />
-              <span><strong>Condições Médicas:</strong> Pessoas com doenças crônicas ou que usam medicamentos regulares devem consultar um profissional.</span>
+              <span>{m.precautionMedical}</span>
             </li>
             <li className="flex items-start gap-3">
               <AlertTriangle className="w-5 h-5 mt-1 flex-shrink-0" />
-              <span><strong>Consumo Excessivo:</strong> Pode causar efeitos digestivos como diarreia ou desconforto estomacal.</span>
+              <span>{m.precautionExcessive}</span>
             </li>
           </ul>
         </div>
 
-        {/* 8. Curiosidades */}
+        {/* 8. Curiosities */}
         <div className="mb-16">
           <h2 className="text-3xl font-bold text-emerald-700 mb-8 flex items-center gap-3">
-            <Sparkles className="w-8 h-8" /> 8. Curiosidades
+            <Sparkles className="w-8 h-8" /> {m.curiositiesTitle}
           </h2>
           <div className="grid md:grid-cols-3 gap-6">
             <div className="bg-emerald-50 p-6 rounded-2xl text-center">
               <div className="text-4xl mb-4">✨</div>
-              <p className="text-emerald-900 font-medium">Chamada de <strong>"árvore milagrosa"</strong> em diversas culturas africanas.</p>
+              <p className="text-emerald-900 font-medium">{m.curiosity1}</p>
             </div>
             <div className="bg-emerald-50 p-6 rounded-2xl text-center">
               <div className="text-4xl mb-4">♻️</div>
-              <p className="text-emerald-900 font-medium">Praticamente <strong>todas as partes</strong> da planta (folhas, raízes, sementes, casca) são utilizáveis.</p>
+              <p className="text-emerald-900 font-medium">{m.curiosity2}</p>
             </div>
             <div className="bg-emerald-50 p-6 rounded-2xl text-center">
               <div className="text-4xl mb-4">🏜️</div>
-              <p className="text-emerald-900 font-medium">Cresce rapidamente mesmo em <strong>solos pobres</strong> e climas áridos.</p>
+              <p className="text-emerald-900 font-medium">{m.curiosity3}</p>
             </div>
           </div>
         </div>
 
-        {/* Footer of Info Page */}
+        {/* Footer */}
         <div className="text-center pt-8 border-t border-stone-200">
           <p className="text-stone-500 text-sm">
-            © 2026 Moringa Oleifera – Informações Educativas e Científicas.
+            {m.footer}
           </p>
         </div>
       </div>
