@@ -7,8 +7,14 @@ import { getAudioSettings, updateAudioSettings, AudioSettings } from './audio';
 import MoringaInfo from './components/MoringaInfo';
 import { initGlobalAds } from './ads/adsterra';
 import AdsterraAd from './components/AdsterraAd';
-import { Zap, Sword, Clock, MousePointer2, Sparkles, ShieldAlert, FastForward, Leaf, Sun, Wind, Skull, Save, Download, RotateCcw, Globe, X, ShoppingCart, Settings, Upload, Copy, Check, Monitor, Volume2, VolumeX } from 'lucide-react';
+import { Zap, Sword, Clock, MousePointer2, Sparkles, ShieldAlert, FastForward, Leaf, Sun, Wind, Skull, Save, Download, RotateCcw, Globe, X, ShoppingCart, Settings } from 'lucide-react';
 import { t, Language, languages } from './i18n';
+import UpgradeButton from './components/UpgradeButton';
+import AbilityButton from './components/AbilityButton';
+import SettingsModal from './components/SettingsModal';
+import ResetModal from './components/ResetModal';
+import SkillEvolutionModal from './components/SkillEvolutionModal';
+import SkillInfoModal from './components/SkillInfoModal';
 
 // Optimized UI state mapper
 const mapStateToUI = (state: GameState) => ({
@@ -406,265 +412,55 @@ export default function App() {
         
         {/* Settings Modal */}
         {showSettingsModal && (
-          <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md" onClick={() => setShowSettingsModal(false)}>
-            <div className="bg-stone-900 border border-stone-700 rounded-2xl p-6 max-w-lg w-full mx-4 shadow-2xl transform transition-all max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-              <div className="flex justify-between items-center mb-6 border-b border-stone-800 pb-4 sticky top-0 bg-stone-900 z-10">
-                <h2 className="text-2xl font-black text-stone-200 uppercase tracking-wider">Settings</h2>
-                <button onClick={() => setShowSettingsModal(false)} className="text-stone-500 hover:text-white">
-                  <X className="w-6 h-6" />
-                </button>
-              </div>
-
-              <div className="space-y-6">
-                {/* Audio Settings */}
-                <div className="p-4 bg-stone-950 rounded-xl border border-stone-800">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="font-bold text-stone-300">Audio</div>
-                    <button 
-                      onClick={toggleMute}
-                      className={`p-2 rounded-lg transition-colors ${audio.muted ? 'bg-red-900/50 text-red-400' : 'bg-stone-800 text-stone-400'}`}
-                    >
-                      {audio.muted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-                    </button>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-xs text-stone-500 font-bold uppercase">
-                      <span>Volume</span>
-                      <span>{Math.round(audio.volume * 100)}%</span>
-                    </div>
-                    <input 
-                      type="range" 
-                      min="0" 
-                      max="1" 
-                      step="0.01" 
-                      value={audio.volume}
-                      onChange={handleVolumeChange}
-                      className="w-full h-2 bg-stone-800 rounded-lg appearance-none cursor-pointer accent-emerald-500"
-                    />
-                  </div>
-                </div>
-
-                {/* Performance Mode */}
-                <div className="flex items-center justify-between p-4 bg-stone-950 rounded-xl border border-stone-800">
-                  <div>
-                    <div className="font-bold text-stone-300">Low Performance Mode</div>
-                    <div className="text-xs text-stone-500">Reduces visual effects for better performance</div>
-                  </div>
-                  <button 
-                    onClick={togglePerformance}
-                    className={`px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition-colors ${
-                      uiState.settings?.lowPerformance 
-                        ? 'bg-emerald-600 text-white' 
-                        : 'bg-stone-800 text-stone-400'
-                    }`}
-                  >
-                    <Monitor className="w-4 h-4" />
-                    {uiState.settings?.lowPerformance ? 'ON' : 'OFF'}
-                  </button>
-                </div>
-
-                {/* Save Now */}
-                <div className="flex items-center justify-between p-4 bg-stone-950 rounded-xl border border-stone-800">
-                  <div>
-                    <div className="font-bold text-stone-300">Manual Save</div>
-                    <div className="text-xs text-stone-500">Save your progress immediately</div>
-                  </div>
-                  <button 
-                    onClick={handleManualSave}
-                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold flex items-center gap-2"
-                  >
-                    <Save className="w-4 h-4" /> Save
-                  </button>
-                </div>
-
-                {/* Export */}
-                <div className="p-4 bg-stone-950 rounded-xl border border-stone-800">
-                  <div className="flex items-center justify-between mb-3">
-                    <div>
-                      <div className="font-bold text-stone-300">Export Save</div>
-                      <div className="text-xs text-stone-500">Get a code to transfer your save</div>
-                    </div>
-                    <button 
-                      onClick={handleExport}
-                      className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold flex items-center gap-2"
-                    >
-                      <Download className="w-4 h-4" /> Generate
-                    </button>
-                  </div>
-                  {exportString && (
-                    <div className="mt-3 relative">
-                      <textarea 
-                        readOnly 
-                        value={exportString}
-                        className="w-full h-24 bg-black border border-stone-700 rounded-lg p-2 text-xs font-mono text-stone-400 resize-none focus:outline-none focus:border-blue-500"
-                      />
-                      <button 
-                        onClick={handleCopyExport}
-                        className="absolute top-2 right-2 p-1.5 bg-stone-800 hover:bg-stone-700 rounded text-stone-300 transition-colors"
-                        title="Copy to clipboard"
-                      >
-                        {copySuccess ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                {/* Import */}
-                <div className="p-4 bg-stone-950 rounded-xl border border-stone-800">
-                  <div className="mb-3">
-                    <div className="font-bold text-stone-300">Import Save</div>
-                    <div className="text-xs text-stone-500">Paste your save code here</div>
-                  </div>
-                  <div className="flex gap-2">
-                    <input 
-                      type="text" 
-                      value={importString}
-                      onChange={(e) => setImportString(e.target.value)}
-                      placeholder="Paste save string..."
-                      className="flex-1 bg-black border border-stone-700 rounded-lg px-3 py-2 text-sm text-stone-300 focus:outline-none focus:border-emerald-500"
-                    />
-                    <button 
-                      onClick={handleImport}
-                      className="px-4 py-2 bg-stone-800 hover:bg-stone-700 text-stone-300 rounded-lg font-bold flex items-center gap-2 border border-stone-700"
-                    >
-                      <Upload className="w-4 h-4" /> Import
-                    </button>
-                  </div>
-                  {importError && (
-                    <div className="mt-2 text-xs text-red-500 font-bold">{importError}</div>
-                  )}
-                </div>
-
-                {/* Hard Reset */}
-                <div className="flex items-center justify-between p-4 bg-red-950/20 rounded-xl border border-red-900/30">
-                  <div>
-                    <div className="font-bold text-red-400">Hard Reset</div>
-                    <div className="text-xs text-red-500/70">Wipe all progress permanently</div>
-                  </div>
-                  <button 
-                    onClick={handleHardReset}
-                    className="px-4 py-2 bg-red-900/50 hover:bg-red-800/50 text-red-400 border border-red-800 rounded-lg font-bold flex items-center gap-2"
-                  >
-                    <Skull className="w-4 h-4" /> Wipe Save
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
+          <SettingsModal
+            audio={audio}
+            onToggleMute={toggleMute}
+            onVolumeChange={handleVolumeChange}
+            lowPerformance={!!uiState.settings?.lowPerformance}
+            onTogglePerformance={togglePerformance}
+            onManualSave={handleManualSave}
+            onExport={handleExport}
+            exportString={exportString}
+            onCopyExport={handleCopyExport}
+            copySuccess={copySuccess}
+            importString={importString}
+            onImportStringChange={setImportString}
+            onImport={handleImport}
+            importError={importError}
+            onHardReset={handleHardReset}
+            onClose={() => setShowSettingsModal(false)}
+          />
         )}
 
         {/* Reset Modal */}
         {showResetModal && (
-          <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md">
-            <div className="bg-stone-900 border border-stone-700 rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl transform transition-all text-center max-h-[90vh] overflow-y-auto">
-              <h2 className="text-3xl font-black mb-4 text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-orange-500 uppercase tracking-widest">
-                Prestige Reset
-              </h2>
-              <p className="text-stone-300 mb-6 text-lg">
-                Reset your progress and start again with permanent bonuses.
-              </p>
-              
-              <div className="bg-stone-950 rounded-xl p-4 mb-8 border border-stone-800 space-y-3">
-                <div className="flex justify-between items-center border-b border-stone-800 pb-2">
-                  <span className="text-stone-500 font-bold uppercase text-xs tracking-wider">Current Resets</span>
-                  <span className="text-xl font-mono font-bold text-white">{uiState.resets}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-stone-500 font-bold uppercase text-xs tracking-wider">Starting Energy After Reset</span>
-                  <span className="text-xl font-mono font-bold text-yellow-400">+{formatNumber((uiState.resets + 1) * 1000)}</span>
-                </div>
-              </div>
-
-              <div className="flex gap-4">
-                <button 
-                  onClick={() => setShowResetModal(false)}
-                  className="flex-1 py-3 rounded-xl font-bold bg-stone-800 text-stone-400 hover:bg-stone-700 hover:text-white transition-colors"
-                >
-                  Cancel
-                </button>
-                <button 
-                  onClick={confirmReset}
-                  className="flex-1 py-3 rounded-xl font-bold bg-red-600 text-white hover:bg-red-500 shadow-lg shadow-red-900/20 transition-all active:scale-95"
-                >
-                  Confirm Reset
-                </button>
-              </div>
-            </div>
-          </div>
+          <ResetModal
+            resets={uiState.resets}
+            onCancel={() => setShowResetModal(false)}
+            onConfirm={confirmReset}
+          />
         )}
 
         {/* Modal Overlay */}
         {uiState.modal.isOpen && uiState.modal.type === 'skillEvolution' && (
-          <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
-            <div className="bg-stone-900 border border-stone-700 rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl transform transition-all max-h-[90vh] overflow-y-auto">
-              <h2 className="text-2xl font-black text-center mb-2 text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">
-                Skill Evolution!
-              </h2>
-              <p className="text-stone-400 text-center text-sm mb-6">
-                Choose an upgrade path for your skill.
-              </p>
-              <div className="flex flex-col gap-3">
-                {uiState.modal.options.map((opt: any) => (
-                  <button
-                    key={opt.id}
-                    onClick={() => handleModalSelect(opt.id)}
-                    className="p-4 bg-stone-800 hover:bg-stone-700 border border-stone-700 hover:border-emerald-500 rounded-xl text-left transition-all group"
-                  >
-                    <div className="font-bold text-emerald-400 group-hover:text-emerald-300 mb-1">{opt.name}</div>
-                    <div className="text-xs text-stone-400 group-hover:text-stone-300">{opt.description}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
+          <SkillEvolutionModal
+            options={uiState.modal.options}
+            onSelect={handleModalSelect}
+          />
         )}
 
         {uiState.modal.isOpen && uiState.modal.type === 'skillInfo' && (
-          <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm" onClick={() => handleModalClose()}>
-            <div className="bg-stone-900 border border-stone-700 rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl transform transition-all max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-              <div className="flex justify-between items-start mb-4 sticky top-0 bg-stone-900 z-10 pb-2">
-                <h2 className="text-2xl font-black text-emerald-400">
-                  {getSkillName(uiState.modal.skillId)}
-                </h2>
-                <button onClick={() => handleModalClose()} className="text-stone-400 hover:text-white">
-                  <X className="w-6 h-6" />
-                </button>
-              </div>
-              
-              <div className="space-y-4 text-stone-300">
-                <div className="flex justify-between border-b border-stone-800 pb-2">
-                  <span className="text-stone-500">Level</span>
-                  <span className="font-bold">{getSkillLevel(uiState.modal.skillId)}</span>
-                </div>
-                
-                <div className="flex justify-between border-b border-stone-800 pb-2">
-                  <span className="text-stone-500">Effect</span>
-                  <span className="font-bold">{getSkillEffect(uiState.modal.skillId)}</span>
-                </div>
-                
-                <div className="flex justify-between border-b border-stone-800 pb-2">
-                  <span className="text-stone-500">Cooldown</span>
-                  <span className="font-bold">{getSkillCooldown(uiState.modal.skillId)}s</span>
-                </div>
-                
-                <div>
-                  <h3 className="text-stone-500 mb-1">Description</h3>
-                  <p className="text-sm">{getSkillDescription(uiState.modal.skillId)}</p>
-                </div>
-                
-                {getSkillEvolutions(uiState.modal.skillId).length > 0 && (
-                  <div>
-                    <h3 className="text-stone-500 mb-1">Unlocked Evolutions</h3>
-                    <ul className="list-disc list-inside text-sm text-emerald-300">
-                      {getSkillEvolutions(uiState.modal.skillId).map((evo: string) => (
-                        <li key={evo}>{formatEvolutionName(evo)}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
+          <SkillInfoModal
+            skillId={uiState.modal.skillId}
+            onClose={handleModalClose}
+            getSkillName={getSkillName}
+            getSkillLevel={getSkillLevel}
+            getSkillEffect={getSkillEffect}
+            getSkillCooldown={getSkillCooldown}
+            getSkillDescription={getSkillDescription}
+            getSkillEvolutions={getSkillEvolutions}
+            formatEvolutionName={formatEvolutionName}
+          />
         )}
 
         {/* Left Side Ad Slot (Desktop) */}
@@ -1016,131 +812,6 @@ export default function App() {
 
       {/* Moringa Info Section */}
       <MoringaInfo />
-    </div>
-  );
-}
-
-function UpgradeButton({ icon, title, level, cost, count, canAfford, onClick, onIconClick, formatNumber, lang, colorClass }: any) {
-  return (
-    <div
-      className={`relative w-full flex flex-col p-4 rounded-2xl border transition-all duration-200 text-left overflow-hidden group ${
-        canAfford
-          ? 'bg-stone-800/50 border-stone-700 hover:bg-stone-700/80 hover:border-stone-500 shadow-lg'
-          : 'bg-stone-900/30 border-stone-800 opacity-50'
-      }`}
-    >
-      {/* Background Gradient */}
-      {canAfford && (
-        <div className={`absolute inset-0 bg-gradient-to-br ${colorClass} opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none`} />
-      )}
-
-      {/* Line 1: Icon + Name */}
-      <div className="flex items-center gap-3 relative z-10 mb-2">
-        <div 
-          className={`p-2 bg-stone-950 rounded-xl border border-stone-800 transition-all shadow-inner ${onIconClick ? 'cursor-pointer hover:bg-stone-800 hover:border-stone-600 hover:scale-110' : ''}`}
-          onClick={(e) => {
-            if (onIconClick) {
-              e.stopPropagation();
-              onIconClick();
-            }
-          }}
-        >
-          {React.cloneElement(icon as React.ReactElement, { className: 'w-5 h-5 drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]' })}
-        </div>
-        <div className="font-bold text-stone-100 text-base leading-tight group-hover:text-white transition-colors">{title}</div>
-      </div>
-      
-      {/* Line 2: Level */}
-      <div className="text-[10px] font-bold text-stone-500 uppercase tracking-widest relative z-10 mb-3 ml-1">
-        {t[lang].level} {level}
-      </div>
-
-      {/* Line 3: Upgrade Button */}
-      <button
-        onClick={onClick}
-        disabled={!canAfford}
-        className={`relative z-10 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border font-bold transition-all active:scale-[0.98] ${
-          canAfford 
-            ? 'bg-emerald-600/20 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/30 hover:border-emerald-400/50' 
-            : 'bg-stone-900/50 border-stone-800 text-stone-500 cursor-not-allowed'
-        }`}
-      >
-        <span className="text-sm uppercase tracking-wider">{t[lang].upgrades} {count > 1 ? `x${count}` : ''}</span>
-        <div className="flex items-center gap-1.5 bg-black/40 px-2 py-0.5 rounded-lg border border-black/50">
-          <Zap className={`w-3.5 h-3.5 ${canAfford ? 'text-yellow-400 fill-yellow-400/20' : 'text-stone-600'}`} />
-          <span className={`font-mono font-black text-sm ${canAfford ? 'text-yellow-400' : 'text-stone-500'}`}>
-            {formatNumber(cost)}
-          </span>
-        </div>
-      </button>
-    </div>
-  );
-}
-
-function AbilityButton({ icon, title, ability, cost, count, canAfford, onClick, onIconClick, formatNumber, lang, colorClass }: any) {
-  const isUnlocked = ability.level > 0;
-  const cooldownPercent = isUnlocked ? Math.max(0, (ability.cooldown / ability.maxCooldown) * 100) : 0;
-
-  return (
-    <div
-      className={`relative w-full flex flex-col p-4 rounded-2xl border transition-all duration-200 text-left overflow-hidden group ${
-        canAfford
-          ? 'bg-stone-800/50 border-stone-700 hover:bg-stone-700/80 hover:border-stone-500 shadow-lg'
-          : 'bg-stone-900/30 border-stone-800 opacity-50'
-      }`}
-    >
-      {/* Background Gradient */}
-      {canAfford && (
-        <div className={`absolute inset-0 bg-gradient-to-br ${colorClass} opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none`} />
-      )}
-
-      {/* Cooldown overlay */}
-      {isUnlocked && ability.cooldown > 0 && (
-        <div 
-          className="absolute inset-0 bg-emerald-500/10 z-0 transition-all duration-100 ease-linear pointer-events-none" 
-          style={{ width: `${cooldownPercent}%` }}
-        />
-      )}
-      
-      {/* Line 1: Icon + Name */}
-      <div className="flex items-center gap-3 relative z-10 mb-2">
-        <div 
-          className={`p-2 rounded-xl border transition-all shadow-inner ${isUnlocked ? 'bg-stone-900 border-stone-700' : 'bg-stone-950 border-stone-800 grayscale opacity-50'} ${onIconClick ? 'cursor-pointer hover:bg-stone-800 hover:border-stone-600 hover:scale-110' : ''}`}
-          onClick={(e) => {
-            if (onIconClick) {
-              e.stopPropagation();
-              onIconClick();
-            }
-          }}
-        >
-          {React.cloneElement(icon as React.ReactElement, { className: 'w-5 h-5 drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]' })}
-        </div>
-        <div className="font-bold text-stone-100 text-base leading-tight group-hover:text-white transition-colors">{title}</div>
-      </div>
-      
-      {/* Line 2: Level */}
-      <div className="text-[10px] font-bold text-stone-500 uppercase tracking-widest relative z-10 mb-3 ml-1">
-        {isUnlocked ? `${t[lang].level} ${ability.level}` : 'Locked'}
-      </div>
-      
-      {/* Line 3: Upgrade Button */}
-      <button
-        onClick={onClick}
-        disabled={!canAfford}
-        className={`relative z-10 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border font-bold transition-all active:scale-[0.98] ${
-          canAfford 
-            ? 'bg-emerald-600/20 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/30 hover:border-emerald-400/50' 
-            : 'bg-stone-900/50 border-stone-800 text-stone-500 cursor-not-allowed'
-        }`}
-      >
-        <span className="text-sm uppercase tracking-wider">{isUnlocked ? t[lang].upgrades : 'Unlock'} {count > 1 ? `x${count}` : ''}</span>
-        <div className="flex items-center gap-1.5 bg-black/40 px-2 py-0.5 rounded-lg border border-black/50">
-          <Zap className={`w-3.5 h-3.5 ${canAfford ? 'text-yellow-400 fill-yellow-400/20' : 'text-stone-600'}`} />
-          <span className={`font-mono font-black text-sm ${canAfford ? 'text-yellow-400' : 'text-stone-500'}`}>
-            {formatNumber(cost)}
-          </span>
-        </div>
-      </button>
     </div>
   );
 }
