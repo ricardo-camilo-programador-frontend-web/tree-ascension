@@ -9,13 +9,34 @@ const nextId = (): string => String(++_nextId);
 
 /** Sync the ID counter past the highest existing entity ID to prevent collisions after save/load. */
 export const syncNextId = (state: GameState): void => {
-  const numericIds = [
-    ...state.zombies, ...state.projectiles, ...state.particles,
-    ...state.floatingTexts, ...state.coins, ...state.suns, ...state.sunBursts,
-  ]
-    .map(e => parseInt(e.id, 10))
-    .filter(n => !isNaN(n));
-  _nextId = numericIds.length ? Math.max(...numericIds) : 0;
+  let maxId = 0;
+  // Collect all numeric IDs from all entities
+  for (const zombie of state.zombies) {
+    const id = parseInt(zombie.id);
+    if (!isNaN(id)) maxId = Math.max(maxId, id);
+  }
+  for (const projectile of state.projectiles) {
+    const id = parseInt(projectile.id);
+    if (!isNaN(id)) maxId = Math.max(maxId, id);
+  }
+  for (const particle of state.particles) {
+    const id = parseInt(particle.id);
+    if (!isNaN(id)) maxId = Math.max(maxId, id);
+  }
+  for (const coin of state.coins) {
+    const id = parseInt(coin.id);
+    if (!isNaN(id)) maxId = Math.max(maxId, id);
+  }
+  for (const sun of state.suns) {
+    const id = parseInt(sun.id);
+    if (!isNaN(id)) maxId = Math.max(maxId, id);
+  }
+  for (const sunBurst of state.sunBursts) {
+    const id = parseInt(sunBurst.id);
+    if (!isNaN(id)) maxId = Math.max(maxId, id);
+  }
+  // Find the maximum ID and set nextId to one more than that
+  _nextId = maxId;
 };
 
 const resetNextId = (): void => { _nextId = 0; };
@@ -23,573 +44,469 @@ const resetNextId = (): void => { _nextId = 0; };
 export type ZombieType = 'basic' | 'fast' | 'tank' | 'shield' | 'mutant' | 'boss';
 
 export interface Zombie {
-  id: string;
-  type: ZombieType;
-  level: number;
-  x: number;
-  y: number;
-  hp: number;
-  maxHp: number;
-  speed: number;
-  damage: number;
-  reward: number;
-  color: string;
-  size: number;
-  wobbleOffset: number;
-  hitTimer?: number;
-  slowTimer?: number;
-  slowAmount?: number;
-  poisonTimer?: number;
-  poisonDamage?: number;
-  poisonTicks?: number;
-  burnTimer?: number;
-  burnDamage?: number;
+ id: string;
+ type: ZombieType;
+ level: number;
+ x: number;
+ y: number;
+ hp: number;
+ maxHp: number;
+ speed: number;
+ damage: number;
+ reward: number;
+ color: string;
+ size: number;
+ wobbleOffset: number;
+ hitTimer?: number;
+ slowTimer?: number;
+ slowAmount?: number;
+ poisonTimer?: number;
+ poisonDamage?: number;
+ poisonTicks?: number;
+ burnTimer?: number;
+ burnDamage?: number;
 }
 
 export interface Projectile {
-  id: string;
-  x: number;
-  y: number;
-  speed: number;
-  damage: number;
-  size: number;
-  color: string;
+ id: string;
+ x: number;
+ y: number;
+ speed: number;
+ damage: number;
+ size: number;
+ color: string;
 }
 
 export interface Particle {
-  id: string;
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  life: number;
-  maxLife: number;
-  color: string;
-  size: number;
+ id: string;
+ x: number;
+ y: number;
+ vx: number;
+ vy: number;
+ life: number;
+ maxLife: number;
+ color: string;
+ size: number;
 }
 
 export interface FloatingText {
-  id: string;
-  text: string;
-  x: number;
-  y: number;
-  life: number;
-  maxLife: number;
-  color: string;
-  isCrit?: boolean;
+ id: string;
+ text: string;
+ x: number;
+ y: number;
+ life: number;
+ maxLife: number;
+ color: string;
+ isCrit?: boolean;
 }
 
 export interface Coin {
-  id: string;
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  life: number;
-  maxLife: number;
-  value: number;
+ id: string;
+ x: number;
+ y: number;
+ vx: number;
+ vy: number;
+ life: number;
+ maxLife: number;
+ value: number;
 }
 
 export interface Sun {
-  id: string;
-  x: number;
-  y: number;
-  targetY: number;
-  speed: number;
-  value: number;
-  size: number;
-  life: number;
-  maxLife: number;
+ id: string;
+ x: number;
+ y: number;
+ targetY: number;
+ speed: number;
+ value: number;
+ size: number;
+ life: number;
+ maxLife: number;
 }
 
 export interface SunBurst {
-  id: string;
-  x: number;
-  y: number;
-  life: number;
-  maxLife: number;
+ id: string;
+ x: number;
+ y: number;
+ life: number;
+ maxLife: number;
 }
 
 export interface GameState {
-  energy: number;
-  wave: number;
-  resets: number;
-  prestige: {
-    points: number;
-    totalPoints: number;
-    upgrades: {
-      soulRoots: number;
-      ancientSun: number;
-      evolutionMemory: number;
-      eternalGrowth: number;
-    };
-  };
-  stats: {
-    totalEnergyGenerated: number;
-    enemiesKilled: number;
-    wavesCompleted: number;
-  };
-  plant: {
-    level: number;
-    stage: number;
-    baseDamage: number;
-    damageMultiplier: number;
-    baseAttackSpeed: number;
-    attackSpeedMultiplier: number;
-    projectileSize: number;
-    hp: number;
-    maxHp: number;
-    evolutionProgress: number;
-  };
-  playerHealth: number;
-  maxPlayerHealth: number;
-  enemiesKilledForHeal: number;
-  clickDamage: number;
-  energyMultiplier: number;
+ energy: number;
+ wave: number;
+ resets: number;
+ prestige: {
+ points: number;
+ totalPoints: number;
+ upgrades: {
+ soulRoots: number;
+ ancientSun: number;
+ evolutionMemory: number;
+ eternalGrowth: number;
+ };
+ };
+ stats: {
+ totalEnergyGenerated: number;
+ enemiesKilled: number;
+ wavesCompleted: number;
+ };
+ plant: {
+ level: number;
+ stage: number;
+ baseDamage: number;
+ damageMultiplier: number;
+ baseAttackSpeed: number;
+ attackSpeedMultiplier: number;
+ projectileSize: number;
+ hp: number;
+ maxHp: number;
+ evolutionProgress: number;
+ };
+ playerHealth: number;
+ maxPlayerHealth: number;
+ enemiesKilledForHeal: number;
+ clickDamage: number;
+ energyMultiplier: number;
 
-  zombies: Zombie[];
-  projectiles: Projectile[];
-  particles: Particle[];
-  floatingTexts: FloatingText[];
-  coins: Coin[];
-  suns: Sun[];
-  sunBursts: SunBurst[];
+ zombies: Zombie[];
+ projectiles: Projectile[];
+ particles: Particle[];
+ floatingTexts: FloatingText[];
+ coins: Coin[];
+ suns: Sun[];
+ sunBursts: SunBurst[];
 
-  timers: {
-    lastShot: number;
-    lastSpawn: number;
-    gameTime: number;
-    lastGrassTick: number;
-    lastSunSpawn: number;
-  };
+ timers: {
+ lastShot: number;
+ lastSpawn: number;
+ gameTime: number;
+ lastGrassTick: number;
+ lastSunSpawn: number;
+ };
 
-  waveState: {
-    spawned: number;
-    killed: number;
-    totalToSpawn: number;
-    isBoss: boolean;
-    spawnRate: number;
-  };
+ waveState: {
+ spawned: number;
+ killed: number;
+ totalToSpawn: number;
+ isBoss: boolean;
+ spawnRate: number;
+ };
 
-  upgrades: {
-    damageLevel: number;
-    speedLevel: number;
-    clickLevel: number;
-    energyLevel: number;
-    evolutionSpeedLevel: number;
-    grassLevel: number;
-    grassEvolutions: string[];
-  };
+ upgrades: {
+ damageLevel: number;
+ speedLevel: number;
+ clickLevel: number;
+ energyLevel: number;
+ evolutionSpeedLevel: number;
+ grassLevel: number;
+ grassEvolutions: string[];
+ };
 
-  abilities: {
-    sunBurst: { level: number; cooldown: number; maxCooldown: number; active: boolean; evolutions: string[] };
-    rootEntangle: { level: number; cooldown: number; maxCooldown: number; active: boolean; evolutions: string[] };
-    poisonCloud: { level: number; cooldown: number; maxCooldown: number; active: boolean; evolutions: string[] };
-    solGenerator: { level: number; cooldown: number; maxCooldown: number; active: boolean; evolutions: string[] };
-  };
+ abilities: {
+ sunBurst: { level: number; cooldown: number; maxCooldown: number; active: boolean; evolutions: string[] };
+ rootEntangle: { level: number; cooldown: number; maxCooldown: number; active: boolean; evolutions: string[] };
+ poisonCloud: { level: number; cooldown: number; maxCooldown: number; active: boolean; evolutions: string[] };
+ solGenerator: { level: number; cooldown: number; maxCooldown: number; active: boolean; evolutions: string[] };
+ };
 
-  modal: {
-    isOpen: boolean;
-    type: 'skillEvolution' | 'skillInfo' | null;
-    skillId: string | null;
-    options: { id: string; name: string; description: string }[];
-  };
-  settings: {
-    lowPerformance: boolean;
-  };
-  lastTimestamp: number;
+ modal: {
+ isOpen: boolean;
+ type: 'skillEvolution' | 'skillInfo' | null;
+ skillId: string | null;
+ options: { id: string; name: string; description: string }[];
+ };
+ settings: {
+ lowPerformance: boolean;
+ };
+ lastTimestamp: number;
 }
 
 export type UpgradeLevelKey = 'damageLevel' | 'speedLevel' | 'clickLevel' | 'energyLevel' | 'evolutionSpeedLevel' | 'grassLevel';
 
 export const calculateMaxHp = (level: number): number => {
-  return 10000 + (Math.floor(level / 50) * 10000);
+ return 10000 + (Math.floor(level / 50) * 10000);
 };
 
 export const createInitialState = (): GameState => ({
-  energy: 0,
-  resets: 0,
-  prestige: {
-    points: 0,
-    totalPoints: 0,
-    upgrades: {
-      soulRoots: 0,
-      ancientSun: 0,
-      evolutionMemory: 0,
-      eternalGrowth: 0,
-    },
-  },
-  stats: {
-    totalEnergyGenerated: 0,
-    enemiesKilled: 0,
-    wavesCompleted: 0,
-  },
-  plant: {
-    level: 1,
-    stage: 1,
-    baseDamage: 5,
-    damageMultiplier: 1,
-    baseAttackSpeed: 1,
-    attackSpeedMultiplier: 1,
-    projectileSize: 10,
-    hp: 100,
-    maxHp: 100,
-    evolutionProgress: 0,
-  },
-  playerHealth: 10000,
-  maxPlayerHealth: 10000,
-  enemiesKilledForHeal: 0,
-  clickDamage: 1,
-  energyMultiplier: 1,
-  wave: 1,
-  zombies: [],
-  projectiles: [],
-  particles: [],
-  floatingTexts: [],
-  coins: [],
-  suns: [],
-  sunBursts: [],
-  timers: {
-    lastShot: 0,
-    lastSpawn: 0,
-    gameTime: 0,
-    lastGrassTick: 0,
-    lastSunSpawn: 0,
-  },
-  waveState: {
-    spawned: 0,
-    killed: 0,
-    totalToSpawn: 10,
-    isBoss: false,
-    spawnRate: 1,
-  },
-  upgrades: {
-    damageLevel: 1,
-    speedLevel: 1,
-    clickLevel: 1,
-    energyLevel: 1,
-    evolutionSpeedLevel: 1,
-    grassLevel: 0,
-    grassEvolutions: [],
-  },
-  abilities: {
-    sunBurst: { level: 0, cooldown: 0, maxCooldown: 30, active: false, evolutions: [] },
-    rootEntangle: { level: 0, cooldown: 0, maxCooldown: 45, active: false, evolutions: [] },
-    poisonCloud: { level: 0, cooldown: 0, maxCooldown: 60, active: false, evolutions: [] },
-    solGenerator: { level: 0, cooldown: 0, maxCooldown: 0, active: false, evolutions: [] },
-  },
-  modal: {
-    isOpen: false,
-    type: null,
-    skillId: null,
-    options: [],
-  },
-  settings: {
-    lowPerformance: false,
-  },
-  lastTimestamp: Date.now(),
+ energy: 0,
+ resets: 0,
+ prestige: {
+ points: 0,
+ totalPoints: 0,
+ upgrades: {
+ soulRoots: 0,
+ ancientSun: 0,
+ evolutionMemory: 0,
+ eternalGrowth: 0,
+ },
+ },
+ stats: {
+ totalEnergyGenerated: 0,
+ enemiesKilled: 0,
+ wavesCompleted: 0,
+ },
+ plant: {
+ level: 1,
+ stage: 1,
+ baseDamage: 5,
+ damageMultiplier: 1,
+ baseAttackSpeed: 1,
+ attackSpeedMultiplier: 1,
+ projectileSize: 10,
+ hp: 100,
+ maxHp: 100,
+ evolutionProgress: 0,
+ },
+ playerHealth: 10000,
+ maxPlayerHealth: 10000,
+ enemiesKilledForHeal: 0,
+ clickDamage: 1,
+ energyMultiplier: 1,
+ wave: 1,
+ zombies: [],
+ projectiles: [],
+ particles: [],
+ floatingTexts: [],
+ coins: [],
+ suns: [],
+ sunBursts: [],
+ timers: {
+ lastShot: 0,
+ lastSpawn: 0,
+ gameTime: 0,
+ lastGrassTick: 0,
+ lastSunSpawn: 0,
+ },
+ waveState: {
+ spawned: 0,
+ killed: 0,
+ totalToSpawn: 10,
+ isBoss: false,
+ spawnRate: 1,
+ },
+ upgrades: {
+ damageLevel: 1,
+ speedLevel: 1,
+ clickLevel: 1,
+ energyLevel: 1,
+ evolutionSpeedLevel: 1,
+ grassLevel: 0,
+ grassEvolutions: [],
+ },
+ abilities: {
+ sunBurst: { level: 0, cooldown: 0, maxCooldown: 30, active: false, evolutions: [] },
+ rootEntangle: { level: 0, cooldown: 0, maxCooldown: 45, active: false, evolutions: [] },
+ poisonCloud: { level: 0, cooldown: 0, maxCooldown: 60, active: false, evolutions: [] },
+ solGenerator: { level: 0, cooldown: 0, maxCooldown: 0, active: false, evolutions: [] },
+ },
+ modal: {
+ isOpen: false,
+ type: null,
+ skillId: null,
+ options: [],
+ },
+ settings: {
+ lowPerformance: false,
+ },
+ lastTimestamp: Date.now(),
 });
 
 
 export const calculatePrestigePoints = (totalEnergy: number): number => {
-  return Math.floor(Math.sqrt(totalEnergy / 1e6));
+ return Math.floor(Math.sqrt(totalEnergy / 1e6));
 };
 
 export const resetGame = (state: GameState): boolean => {
-  if (state.wave < 50 && state.plant.level < 50) return false;
+ if (state.wave < 50 && state.plant.level < 50) return false;
 
-  const currentResets = state.resets + 1;
-  const startingEnergy = currentResets * 1000;
-  
-  // Calculate prestige points (keep existing logic if needed, or replace)
-  const points = calculatePrestigePoints(state.stats.totalEnergyGenerated);
-  state.prestige.points += points;
-  state.prestige.totalPoints += points;
-  
-  // Reset game state
-  const newState = createInitialState();
-  
-  // Keep prestige, stats, and resets
-  newState.prestige = state.prestige;
-  newState.stats = state.stats;
-  newState.resets = currentResets;
-  newState.energy = startingEnergy;
-  
-  // Recalculate Max HP based on reset level (which is 1)
-  newState.maxPlayerHealth = calculateMaxHp(newState.plant.level);
-  newState.playerHealth = newState.maxPlayerHealth;
+ const currentResets = state.resets + 1;
+ const startingEnergy = currentResets * 1000;
+ 
+ // Calculate prestige points (keep existing logic if needed, or replace)
+ const points = calculatePrestigePoints(state.stats.totalEnergyGenerated);
+ state.prestige.points += points;
+ state.prestige.totalPoints += points;
+ 
+ // Reset game state
+ const newState = createInitialState();
+ 
+ // Keep prestige, stats, and resets
+ newState.prestige = state.prestige;
+ newState.stats = state.stats;
+ newState.resets = currentResets;
+ newState.energy = startingEnergy;
+ 
+ // Recalculate Max HP based on reset level (which is 1)
+ newState.maxPlayerHealth = calculateMaxHp(newState.plant.level);
+ newState.playerHealth = newState.maxPlayerHealth;
 
-  // Apply permanent upgrades
-  newState.plant.baseDamage *= (1 + state.prestige.upgrades.soulRoots * 0.1);
-  newState.energyMultiplier *= (1 + state.prestige.upgrades.ancientSun * 0.15);
-  // ... apply other upgrades
-  
-  Object.assign(state, newState);
-  resetNextId();
-  return true;
+ // Apply permanent upgrades
+ newState.plant.baseDamage *= (1 + state.prestige.upgrades.soulRoots * 0.1);
+ newState.energyMultiplier *= (1 + state.prestige.upgrades.ancientSun * 0.15);
+ // ... apply other upgrades
+ 
+ Object.assign(state, newState);
+ resetNextId();
+ return true;
 };
 
 const resetWave = (state: GameState) => {
-  state.zombies = [];
-  state.projectiles = [];
-  state.waveState.spawned = 0;
-  state.waveState.killed = 0;
-  state.waveState.isBoss = state.wave % 5 === 0;
-  state.waveState.totalToSpawn = state.waveState.isBoss ? 1 : 10 + Math.floor(state.wave * 1.5);
-  state.waveState.spawnRate = state.waveState.isBoss ? 0.5 : 1 + state.wave * 0.1;
+ state.zombies = [];
+ state.projectiles = [];
+ state.waveState.spawned = 0;
+ state.waveState.killed = 0;
+ state.waveState.isBoss = state.wave % 5 === 0;
+ state.waveState.totalToSpawn = state.waveState.isBoss ? 1 : 10 + Math.floor(state.wave * 1.5);
+ state.waveState.spawnRate = state.waveState.isBoss ? 0.5 : 1 + state.wave * 0.1;
 };
 
 const spawnZombie = (state: GameState) => {
-  state.waveState.spawned++;
-  const isBoss = state.waveState.isBoss;
+ state.waveState.spawned++;
+ const isBoss = state.waveState.isBoss;
 
-  playPortalSound();
+ playPortalSound();
 
-  const baseHp = 10 * Math.pow(1.18, state.wave - 1);
-  const baseReward = 2 * Math.pow(1.12, state.wave - 1);
-  const baseSpeed = 15 + state.wave * 0.5;
+ const baseHp = 10 * Math.pow(1.18, state.wave - 1);
+ const baseReward = 2 * Math.pow(1.12, state.wave - 1);
+ const baseSpeed = 15 + state.wave * 0.5;
 
-  let type: ZombieType = 'basic';
-  const rand = Math.random();
-  if (isBoss) type = 'boss';
-  else if (rand < 0.2) type = 'fast';
-  else if (rand < 0.4) type = 'tank';
-  else if (rand < 0.6) type = 'shield';
-  else if (rand < 0.8) type = 'mutant';
+ let type: ZombieType = 'basic';
+ const rand = Math.random();
+ if (isBoss) type = 'boss';
+ else if (rand < 0.2) type = 'fast';
+ else if (rand < 0.4) type = 'tank';
+ else if (rand < 0.6) type = 'shield';
+ else if (rand < 0.8) type = 'mutant';
 
-  let hp = baseHp;
-  let speed = baseSpeed;
-  let size = 40;
-  let color = '#22c55e';
-  let reward = baseReward;
+ let hp = baseHp;
+ let speed = baseSpeed;
+ let size = 40;
+ let color = '#22c55e';
+ let reward = baseReward;
 
-  switch (type) {
-    case 'fast': hp *= 0.6; speed *= 1.5; color = '#eab308'; size = 30; break;
-    case 'tank': hp *= 3; speed *= 0.6; color = '#64748b'; size = 60; reward *= 2; break;
-    case 'shield': hp *= 2; speed *= 0.8; color = '#3b82f6'; break;
-    case 'mutant': hp *= 1.5; speed *= 1.2; color = '#a855f7'; reward *= 1.5; break;
-    case 'boss': 
-      // Boss stats inspired by player progression
-      hp *= 30; 
-      speed *= 0.3; // Much slower
-      color = '#ef4444'; 
-      size = 120; 
-      reward *= 100; 
-      break;
-  }
+ switch (type) {
+ case 'fast': hp *= 0.6; speed *= 1.5; color = '#eab308'; size = 30; break;
+ case 'tank': hp *= 3; speed *= 0.6; color = '#64748b'; size = 60; reward *= 2; break;
+ case 'shield': hp *= 2; speed *= 0.8; color = '#3b82f6'; break;
+ case 'mutant': hp *= 1.5; speed *= 1.2; color = '#a855f7'; reward *= 1.5; break;
+ case 'boss': 
+ // Boss stats inspired by player progression
+ hp *= 30; 
+ speed *= 0.3; // Much slower
+ color = '#ef4444'; 
+ size = 120; 
+ reward *= 100; 
+ break;
+ }
 
-  state.zombies.push({
-    id: nextId(),
-    type,
-    level: state.wave,
-    x: INTERNAL_W + 50,
-    y: INTERNAL_H - 100,
-    hp, maxHp: hp,
-    speed,
-    damage: isBoss ? 50 : 10,
-    reward,
-    color,
-    size,
-    wobbleOffset: Math.random() * Math.PI * 2,
-    hitTimer: 0,
-  });
+ state.zombies.push({
+ id: nextId(),
+ type,
+ level: state.wave,
+ x: INTERNAL_W + 50,
+ y: INTERNAL_H - 100,
+ hp, maxHp: hp,
+ speed,
+ damage: isBoss ? 50 : 10,
+ reward,
+ color,
+ size,
+ wobbleOffset: Math.random() * Math.PI * 2,
+ hitTimer: 0,
+ });
 };
-
-  // Remove the old formatNumber function
-/*
-export const formatNumber = (num: number): string => {
-  if (num === 0) return '0';
-  if (num >= 1e15) return num.toExponential(2).replace('e+', 'e');
-  if (num >= 1e12) return (num / 1e12).toFixed(2) + 'T';
-  if (num >= 1e9) return (num / 1e9).toFixed(2) + 'B';
-  if (num >= 1e6) return (num / 1e6).toFixed(2) + 'M';
-  if (num >= 1e3) return (num / 1e3).toFixed(2) + 'K';
-  return Math.floor(num).toLocaleString();
-};
-*/
 
 export const getCooldownForLevel = (baseCooldown: number, level: number) => {
-  if (baseCooldown === 0) return 0;
-  // Reduces cooldown by ~1% per level, with diminishing returns, capped at 50% reduction
-  const reduction = 1 - (0.5 * (1 - Math.exp(-0.01 * level)));
-  return Math.max(1, baseCooldown * reduction);
+ if (baseCooldown === 0) return 0;
+ // Reduces cooldown by ~1% per level, with diminishing returns, capped at 50% reduction
+ const reduction = 1 - (0.5 * (1 - Math.exp(-0.01 * level)));
+ return Math.max(1, baseCooldown * reduction);
 };
 
 export const calculatePlantDamage = (state: GameState): number => {
-  let damage = state.plant.baseDamage * state.plant.damageMultiplier;
-  
-  // Apply Prestige Bonus (Soul Roots)
-  if (state.prestige.upgrades.soulRoots > 0) {
-    damage *= (1 + state.prestige.upgrades.soulRoots * 0.1);
-  }
+ let damage = state.plant.baseDamage * state.plant.damageMultiplier;
+ 
+ // Apply Prestige Bonus (Soul Roots)
+ if (state.prestige.upgrades.soulRoots > 0) {
+ damage *= (1 + state.prestige.upgrades.soulRoots * 0.1);
+ }
 
-  return damage;
+ return damage;
 };
 
 export const calculateClickDamage = (state: GameState, isCrit: boolean): number => {
-  const baseClickDamage = 10;
-  const levelMultiplier = Math.pow(1.12, state.upgrades.clickLevel - 1);
-  const plantMultiplier = calculatePlantDamage(state) * 0.5;
-  const totalDamage = (baseClickDamage * levelMultiplier) + plantMultiplier;
-  return isCrit ? totalDamage * 2 : totalDamage;
+ const baseClickDamage = 10;
+ const levelMultiplier = Math.pow(1.12, state.upgrades.clickLevel - 1);
+ const plantMultiplier = calculatePlantDamage(state) * 0.5;
+ const totalDamage = (baseClickDamage * levelMultiplier) + plantMultiplier;
+ return isCrit ? totalDamage * 2 : totalDamage;
 };
 
 export const calculateSkillDamage = (state: GameState, skillId: string): number => {
-  const baseDamage = calculatePlantDamage(state);
-  
-  switch (skillId) {
-    case 'sunBurst':
-      let sbDamage = baseDamage * 5 * Math.pow(1.15, state.abilities.sunBurst.level - 1);
-      if (state.abilities.sunBurst.evolutions.includes('double_burst')) sbDamage *= 1.5;
-      return sbDamage;
-      
-    case 'poisonCloud':
-      return baseDamage * 0.5 * Math.pow(1.15, state.abilities.poisonCloud.level - 1);
-      
-    case 'grass':
-      let grassDamage = 5 * Math.pow(1.15, state.upgrades.grassLevel);
-      if (state.upgrades.grassEvolutions.includes('poison_grass')) grassDamage *= 1.5;
-      return grassDamage;
-      
-    case 'rootEntangle':
-      // Root entangle damage over time evolution
-      if (state.abilities.rootEntangle.evolutions.includes('damage_over_time')) {
-        return baseDamage * 0.2;
-      }
-      return 0;
-      
-    default:
-      return 0;
-  }
+ const baseDamage = calculatePlantDamage(state);
+ 
+ switch (skillId) {
+ case 'sunBurst':
+ let sbDamage = baseDamage * 5 * Math.pow(1.15, state.abilities.sunBurst.level - 1);
+ if (state.abilities.sunBurst.evolutions.includes('double_burst')) sbDamage *= 1.5;
+ return sbDamage;
+ 
+ case 'poisonCloud':
+ return baseDamage * 0.5 * Math.pow(1.15, state.abilities.poisonCloud.level - 1);
+ 
+ case 'grass':
+ let grassDamage = 5 * Math.pow(1.15, state.upgrades.grassLevel);
+ if (state.upgrades.grassEvolutions.includes('poison_grass')) grassDamage *= 1.5;
+ return grassDamage;
+ 
+ case 'rootEntangle':
+ // Root entangle damage over time evolution
+ if (state.abilities.rootEntangle.evolutions.includes('damage_over_time')) {
+ return baseDamage * 0.2;
+ }
+ return 0;
+ 
+ default:
+ return 0;
+ }
 };
 
 export const applyDamageToZombie = (state: GameState, zombie: Zombie, amount: number, isCrit: boolean = false) => {
-  if (amount <= 0 || isNaN(amount)) return;
-  
-  zombie.hp -= amount;
-  if (zombie.hp < 0) zombie.hp = 0;
-  
-  // Visual feedback
-  state.floatingTexts.push({
-    id: nextId(),
-    text: formatNumber(amount),
-    x: zombie.x, 
-    y: zombie.y - zombie.size - 10,
-    life: 0, 
-    maxLife: 0.8,
-    color: isCrit ? '#ef4444' : '#ffffff',
-    isCrit
-  });
-  
-  if (isCrit) {
-    // Extra particles for crit
-    for (let k = 0; k < 5; k++) {
-      state.particles.push({
-        id: nextId(),
-        x: zombie.x, y: zombie.y,
-        vx: (Math.random() - 0.5) * 300,
-        vy: (Math.random() - 0.5) * 300,
-        life: 0, maxLife: 0.4,
-        color: '#ef4444', size: 4,
-      });
-    }
-  }
+ if (amount <= 0 || isNaN(amount)) return;
+ 
+ zombie.hp -= amount;
+ if (zombie.hp < 0) zombie.hp = 0;
+ 
+ // Visual feedback
+ state.floatingTexts.push({
+ id: nextId(),
+ text: formatNumber(amount),
+ x: zombie.x, 
+ y: zombie.y - zombie.size - 10,
+ life: 0, 
+ maxLife: 0.8,
+ color: isCrit ? '#ef4444' : '#ffffff',
+ isCrit
+ });
+ 
+ if (isCrit) {
+ // Extra particles for crit
+ for (let k = 0; k < 5; k++) {
+ state.particles.push({
+ id: nextId(),
+ x: zombie.x, y: zombie.y,
+ vx: (Math.random() - 0.5) * 300,
+ vy: (Math.random() - 0.5) * 300,
+ life: 0, maxLife: 0.4,
+ color: '#ef4444', size: 4,
+ });
+ }
+ }
 };
 
 export const applyDamageToPlayer = (state: GameState, amount: number) => {
-  if (amount <= 0 || isNaN(amount)) return;
+ if (amount <= 0 || isNaN(amount)) return;
 
-  state.playerHealth -= amount;
-  if (state.playerHealth < 0) state.playerHealth = 0;
-
-  // Visual feedback for player damage
-  state.floatingTexts.push({
-    id: nextId(),
-    text: `-${formatNumber(amount)}`,
-    x: 150, // Player position (approx)
-    y: INTERNAL_H - 150,
-    life: 0,
-    maxLife: 1.0,
-    color: '#ef4444',
-    isCrit: true
-  });
-};
-
-export const updateGame = (state: GameState, _unused_dt: number) => {
-  const now = Date.now();
-  const realDt = (now - state.lastTimestamp) / 1000;
-  state.lastTimestamp = now;
-
-  if (state.modal.isOpen) return;
-
-  const maxDt = 3600; 
-  let effectiveDt = Math.min(realDt, maxDt);
-
-  // If dt is very small (e.g. < 1ms), skip to avoid precision issues
-  if (effectiveDt < 0.001) return;
-
-  const subStepSize = 0.05; // 50ms chunks for better stability
-  while (effectiveDt > 0) {
-    const step = Math.min(effectiveDt, subStepSize);
-    runUpdateStep(state, step);
-    effectiveDt -= step;
-  }
-};
-
-const runUpdateStep = (state: GameState, dt: number) => {
-  state.timers.gameTime += dt;
-
-  // Evolution
-  const totalEvolutions = (state.plant.level - 1) * 5 + (state.plant.stage - 1);
-  const requiredProgress = 100 * Math.pow(1.2, totalEvolutions);
-  const evolutionSpeed = 5 * Math.pow(1.5, state.upgrades.evolutionSpeedLevel - 1);
-  
-  state.plant.evolutionProgress += dt * evolutionSpeed;
-
-  if (state.plant.evolutionProgress >= requiredProgress) {
-    state.plant.evolutionProgress -= requiredProgress;
-    state.plant.stage++;
-    if (state.plant.stage > 5) {
-      state.plant.stage = 1;
-      state.plant.level++;
-      
-      // Recalculate Max HP on Level Up
-      const oldMaxHp = state.maxPlayerHealth;
-      const newMaxHp = calculateMaxHp(state.plant.level);
-      state.maxPlayerHealth = newMaxHp;
-
-      // Adjust current HP
-      if (state.playerHealth >= oldMaxHp) {
-        state.playerHealth = newMaxHp;
-      } else {
-        const ratio = state.playerHealth / oldMaxHp;
-        state.playerHealth = Math.floor(newMaxHp * ratio);
-      }
-    }
-    state.plant.baseDamage *= 2;
-    state.plant.maxHp *= 2;
-    state.plant.hp = state.plant.maxHp;
-    
-    // Level up effect
-    for (let k = 0; k < 30; k++) {
-      state.particles.push({
-        id: nextId(),
-        x: 150, y: INTERNAL_H - 100,
-        vx: (Math.random() - 0.5) * 400,
-        vy: (Math.random() - 0.5) * 400,
-        life: 0, maxLife: 1,
-        color: '#a3e635', size: 6,
-      });
-    }
-  }
-
-  // Abilities Cooldowns
-  if (state.abilities.sunBurst.cooldown > 0) state.abilities.sunBurst.cooldown -= dt;
-  if (state.abilities.rootEntangle.cooldown > 0) state.abilities.rootEntangle.cooldown -= dt;
-  if (state.abilities.poisonCloud.cooldown > 0) state.abilities.poisonCloud.cooldown -= dt;
-
-  // Auto-activate abilities if off cooldown and level > 0
-  
     if (state.abilities.sunBurst.level > 0 && state.abilities.sunBurst.cooldown <= 0 && state.zombies.length > 0) {
     state.abilities.sunBurst.cooldown = getCooldownForLevel(state.abilities.sunBurst.maxCooldown, state.abilities.sunBurst.level);
     
