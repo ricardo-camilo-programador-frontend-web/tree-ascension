@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { GameState, createInitialState, updateGame, drawGame, handleCanvasClick, buyUpgrade, getUpgradeCostTotal, INTERNAL_W, INTERNAL_H, resetGame } from './game';
 import { saveGame, loadGame, exportSave, importSave, resetSave } from './saveSystem';
 import { formatNumber } from './utils/number';
@@ -35,6 +35,7 @@ const mapStateToUI = (state: GameState) => ({
   upgrades: state.upgrades,
   abilities: state.abilities,
   resets: state.resets,
+  gameTime: state.timers.gameTime,
   energyMultiplier: state.energyMultiplier,
   modal: state.modal,
   waveState: {
@@ -60,6 +61,7 @@ export default function App() {
   const [audio, setAudio] = useState<AudioSettings>(getAudioSettings());
   const [confirmModal, setConfirmModal] = useState<{ open: boolean; title: string; message: string; onConfirm: () => void; onCancel: () => void; confirmText?: string; cancelText?: string; destructive?: boolean; lang: Language }>({ open: false, title: '', message: '', onConfirm: () => {}, onCancel: () => {} });
   const [showProgressPanel, setShowProgressPanel] = useState(false);
+  const handleCloseProgress = useCallback(() => setShowProgressPanel(false), []);
 
   useEffect(() => {
     initGlobalAds();
@@ -852,7 +854,7 @@ export default function App() {
         <ProgressPanel
           lang={lang}
           uiState={uiState}
-          onClose={() => setShowProgressPanel(false)}
+          onClose={handleCloseProgress}
         />
       )}
 

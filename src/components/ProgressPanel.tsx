@@ -1,9 +1,12 @@
 /**
  * ProgressPanel Component
- * Displays player progress, achievements, and statistics
+ * Displays player progress, achievements, and statistics.
+ *
+ * Play time is derived from `uiState.gameTime` (accumulated in the game loop
+ * via `state.timers.gameTime`) so it persists across modal open/close cycles.
  */
 
-import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
+import React, { useMemo, useEffect, useRef, useCallback } from 'react';
 import { Trophy, Star, Target, Clock, Zap, Sword, Leaf, TrendingUp, Award, CheckCircle2, Lock, X } from 'lucide-react';
 import { formatNumber } from '../utils/number';
 import type { Language, TranslationSet } from '../i18n/types';
@@ -38,6 +41,8 @@ interface ProgressPanelProps {
       solGenerator: { level: number; evolutions: string[] };
     };
     resets: number;
+    /** Accumulated game time in seconds, tracked in the game loop */
+    gameTime: number;
   };
   onClose: () => void;
 }
@@ -177,18 +182,30 @@ function formatPlayTime(seconds: number): string {
 
 export default function ProgressPanel({ lang, uiState, onClose }: ProgressPanelProps) {
   const modalRef = useRef<HTMLDivElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
 
-  // Play time timer — updates every second
-  const [totalPlayTime, setTotalPlayTime] = useState(0);
+  // Body scroll lock while modal is open
   useEffect(() => {
-    const interval = setInterval(() => {
-      setTotalPlayTime(prev => prev + 1);
-    }, 1000);
-    return () => clearInterval(interval);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
   }, []);
 
-  // Focus trap + Escape + focus management
+  // Focus management: save previous focus, focus close button on mount, restore on unmount
+  useEffect(() => {
+    previousFocusRef.current = document.activeElement as HTMLElement;
+    closeButtonRef.current?.focus();
+    return () => {
+      if (previousFocusRef.current?.isConnected) {
+        previousFocusRef.current.focus();
+      }
+    };
+  }, []);
+
+  // Focus trap + Escape
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
       onClose();
@@ -202,24 +219,17 @@ export default function ProgressPanel({ lang, uiState, onClose }: ProgressPanelP
 
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
+      const active = document.activeElement;
 
-      if (e.shiftKey && document.activeElement === first) {
+      if (e.shiftKey && (active === first || active === modalRef.current)) {
         e.preventDefault();
         last.focus();
-      } else if (!e.shiftKey && document.activeElement === last) {
+      } else if (!e.shiftKey && (active === last || active === modalRef.current)) {
         e.preventDefault();
         first.focus();
       }
     }
   }, [onClose]);
-
-  useEffect(() => {
-    previousFocusRef.current = document.activeElement as HTMLElement;
-    modalRef.current?.focus();
-    return () => {
-      previousFocusRef.current?.focus();
-    };
-  }, []);
 
   const unlockedAchievements = useMemo(() => {
     return achievements.filter(a => a.condition(uiState));
@@ -229,31 +239,31 @@ export default function ProgressPanel({ lang, uiState, onClose }: ProgressPanelP
     return new Set(unlockedAchievements.map(a => a.id));
   }, [unlockedAchievements]);
 
+  // Sum all upgrade + ability levels using Object.values for DRY
   const totalUpgrades = useMemo(() => {
-    return (
-      uiState.upgrades.damageLevel +
-      uiState.upgrades.speedLevel +
-      uiState.upgrades.clickLevel +
-      uiState.upgrades.energyLevel +
-      uiState.upgrades.evolutionSpeedLevel +
-      uiState.upgrades.grassLevel +
-      uiState.abilities.sunBurst.level +
-      uiState.abilities.rootEntangle.level +
-      uiState.abilities.poisonCloud.level +
-      uiState.abilities.solGenerator.level
-    );
+    const upgradeLevels = Object.values(uiState.upgrades)
+      .filter((v): v is number => typeof v === 'number');
+    const abilityLevels = Object.values(uiState.abilities)
+      .map(a => a.level);
+    return [...upgradeLevels, ...abilityLevels].reduce((sum, v) => sum + v, 0);
   }, [uiState]);
 
   const totalEvolutions = useMemo(() => {
     return (
       uiState.upgrades.grassEvolutions.length +
-      uiState.abilities.sunBurst.evolutions.length +
-      uiState.abilities.rootEntangle.evolutions.length +
-      uiState.abilities.poisonCloud.evolutions.length +
-      uiState.abilities.solGenerator.evolutions.length
+      Object.values(uiState.abilities)
+        .reduce((sum, a) => sum + a.evolutions.length, 0)
     );
   }, [uiState]);
 
+  /**
+   * Progress Score — composite metric (max ~500 before uncapped resets):
+   *   Wave:       capped at 100 (wave 100 = full points)
+   *   Level:      capped at 100 (plant level 100 = full points)
+   *   Resets:     10 pts each, uncapped (rewards prestige)
+   *   Achievements: 5 pts each (15 × 5 = 75 max)
+   *   Upgrades:   capped at 50 (totalUpgrades / 2, maxes at 100 upgrades)
+   */
   const progressScore = useMemo(() => {
     const waveScore = Math.min(100, uiState.wave);
     const levelScore = Math.min(100, uiState.plant.level);
@@ -286,6 +296,7 @@ export default function ProgressPanel({ lang, uiState, onClose }: ProgressPanelP
               </h2>
             </div>
             <button
+              ref={closeButtonRef}
               onClick={onClose}
               aria-label={t[lang].close || 'Close'}
               className="p-2 bg-stone-800 hover:bg-stone-700 rounded-lg text-stone-400 hover:text-white transition-colors"
@@ -355,7 +366,7 @@ export default function ProgressPanel({ lang, uiState, onClose }: ProgressPanelP
               </div>
               <div className="bg-stone-950 rounded-xl p-4 border border-stone-800">
                 <div className="text-xs text-stone-500 uppercase tracking-wider mb-1">{t[lang].playTime || 'Play Time'}</div>
-                <div className="text-xl font-black text-stone-200">{formatPlayTime(totalPlayTime)}</div>
+                <div className="text-xl font-black text-stone-200">{formatPlayTime(uiState.gameTime)}</div>
               </div>
             </div>
           </section>
