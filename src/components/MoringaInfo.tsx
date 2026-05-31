@@ -1,8 +1,7 @@
-import React from 'react';
-import { Info, Globe, Zap, HeartPulse, Utensils, Coffee, AlertTriangle, Sparkles, Leaf, Droplets, FlaskConical, ShieldCheck } from 'lucide-react';
+import { Info, Globe, Zap, HeartPulse, Utensils, Coffee, AlertTriangle, Sparkles, Leaf, ShieldCheck } from 'lucide-react';
 import { t, Language } from '../i18n';
 
-const MoringaInfo: React.FC<{ lang: Language }> = ({ lang }) => {
+const MoringaInfo = ({ lang }: { lang: Language }) => {
   const m = t[lang].moringa;
 
   return (
@@ -32,7 +31,7 @@ const MoringaInfo: React.FC<{ lang: Language }> = ({ lang }) => {
           <div className="relative bg-emerald-100 rounded-3xl p-8 flex items-center justify-center">
             <Leaf className="w-32 h-32 text-emerald-600 opacity-20 absolute" />
             <div className="relative z-10 text-center">
-              <span className="text-5xl block mb-2">🌿</span>
+              <span className="text-5xl block mb-2" role="img" aria-label="Moringa leaf">🌿</span>
               <p className="font-serif italic text-emerald-800 text-xl">{m.introQuote}</p>
             </div>
           </div>
@@ -194,6 +193,9 @@ const MoringaInfo: React.FC<{ lang: Language }> = ({ lang }) => {
                alt="Moringa Leaves"
                className="w-full h-full object-cover opacity-80"
                referrerPolicy="no-referrer"
+               loading="lazy"
+               width={800}
+               height={600}
              />
           </div>
         </div>
@@ -226,15 +228,15 @@ const MoringaInfo: React.FC<{ lang: Language }> = ({ lang }) => {
           </h2>
           <div className="grid md:grid-cols-3 gap-6">
             <div className="bg-emerald-50 p-6 rounded-2xl text-center">
-              <div className="text-4xl mb-4">✨</div>
+              <div className="text-4xl mb-4" role="img" aria-label="Sparkles">✨</div>
               <p className="text-emerald-900 font-medium">{m.curiosity1}</p>
             </div>
             <div className="bg-emerald-50 p-6 rounded-2xl text-center">
-              <div className="text-4xl mb-4">♻️</div>
+              <div className="text-4xl mb-4" role="img" aria-label="Recycle">♻️</div>
               <p className="text-emerald-900 font-medium">{m.curiosity2}</p>
             </div>
             <div className="bg-emerald-50 p-6 rounded-2xl text-center">
-              <div className="text-4xl mb-4">🏜️</div>
+              <div className="text-4xl mb-4" role="img" aria-label="Desert">🏜️</div>
               <p className="text-emerald-900 font-medium">{m.curiosity3}</p>
             </div>
           </div>

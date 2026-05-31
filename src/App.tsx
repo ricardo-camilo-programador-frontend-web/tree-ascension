@@ -9,7 +9,7 @@ import { initGlobalAds } from './ads/adsterra';
 import AdsterraAd from './components/AdsterraAd';
 import { Zap, Sword, Clock, MousePointer2, Sparkles, ShieldAlert, FastForward, Leaf, Sun, Wind, Skull, Save, Download, RotateCcw, Globe, X, ShoppingCart, Settings, Upload, Copy, Check, Monitor, Volume2, VolumeX } from 'lucide-react';
 import { t, Language, languages } from './i18n';
-import { ToastContainer, showToast, useToast } from './components/Toast';
+import { ToastContainer, showToast } from './components/Toast';
 import ConfirmModal from './components/ConfirmModal';
 
 // Optimized UI state mapper
@@ -52,7 +52,6 @@ export default function App() {
   const [copySuccess, setCopySuccess] = useState(false);
   const [audio, setAudio] = useState<AudioSettings>(getAudioSettings());
   const [confirmModal, setConfirmModal] = useState<{ open: boolean; title: string; message: string; onConfirm: () => void }>({ open: false, title: '', message: '', onConfirm: () => {} });
-  useToast();
 
   useEffect(() => {
     initGlobalAds();
@@ -141,7 +140,7 @@ export default function App() {
 
   const handleManualSave = () => {
     saveGame(gameState.current);
-    showToast(t[lang].saveGame + ' OK!', 'success');
+    showToast(t[lang].saveSuccess, 'success');
   };
 
   const handleExport = () => {
@@ -170,17 +169,17 @@ export default function App() {
       setImportString('');
       setImportError('');
       setShowSettingsModal(false);
-      showToast('Save imported successfully!', 'success');
+      showToast(t[lang].saveImported, 'success');
     } catch (e) {
-      setImportError('Invalid save string');
+      setImportError(t[lang].invalidSaveString);
     }
   };
 
   const handleHardReset = () => {
     setConfirmModal({
       open: true,
-      title: 'Hard Reset',
-      message: 'Are you sure? This will wipe your save completely!',
+      title: t[lang].hardReset,
+      message: t[lang].hardResetMessage,
       onConfirm: () => {
         setConfirmModal(prev => ({ ...prev, open: false }));
         resetSave();
@@ -200,7 +199,7 @@ export default function App() {
     if (success) {
       setShowResetModal(false);
       setUiState(mapStateToUI(gameState.current));
-      showToast(`Prestige Activated! +${formatNumber(gameState.current.energy)} Starting Energy`, 'info');
+      showToast(`${t[lang].prestigeActivated} +${formatNumber(gameState.current.energy)} ${t[lang].startingEnergy}`, 'info');
     }
   };
 
@@ -239,19 +238,19 @@ export default function App() {
   };
 
   const getSkillName = (id: string | null) => {
-    switch (id) {
-      case 'sunBurst': return 'Sun Burst';
-      case 'rootEntangle': return 'Root Entangle';
-      case 'poisonCloud': return 'Poison Cloud';
-      case 'solGenerator': return 'Sol Generator';
-      case 'grass': return 'Sharp Grass';
-      case 'damage': return 'Plant Damage';
-      case 'speed': return 'Attack Speed';
-      case 'click': return 'Click Damage';
-      case 'energy': return 'Energy Multiplier';
-      case 'evolutionSpeed': return 'Evolution Speed';
-      default: return 'Unknown Skill';
-    }
+    const skillNames: Record<string, string> = {
+      sunBurst: t[lang].sunBurst,
+      rootEntangle: t[lang].rootEntangle,
+      poisonCloud: t[lang].poisonCloud,
+      solGenerator: t[lang].solGenerator,
+      grass: t[lang].grass,
+      damage: t[lang].damageSkill,
+      speed: t[lang].speedSkill,
+      click: t[lang].clickSkill,
+      energy: t[lang].energySkill,
+      evolutionSpeed: t[lang].evolutionSpeedSkill,
+    };
+    return id ? (skillNames[id] ?? t[lang].unknownSkill) : t[lang].unknownSkill;
   };
 
   const getSkillLevel = (id: string | null) => {
@@ -310,19 +309,19 @@ export default function App() {
   };
 
   const getSkillDescription = (id: string | null) => {
-    switch (id) {
-      case 'sunBurst': return 'Unleashes a burst of solar energy damaging all enemies on screen.';
-      case 'rootEntangle': return 'Vines erupt from the ground slowing all enemies.';
-      case 'poisonCloud': return 'Releases a toxic cloud dealing damage over time to all enemies.';
-      case 'solGenerator': return 'Increases the amount of suns generated automatically.';
-      case 'grass': return 'Sharp grass covers the ground dealing continuous damage to walking enemies.';
-      case 'damage': return 'Increases the base damage of your plant.';
-      case 'speed': return 'Increases the attack speed of your plant.';
-      case 'click': return 'Increases the damage dealt when you click on enemies.';
-      case 'energy': return 'Increases the amount of energy gained from all sources.';
-      case 'evolutionSpeed': return 'Increases the speed at which your plant evolves.';
-      default: return '';
-    }
+    const descs: Record<string, string> = {
+      sunBurst: t[lang].skillDesc_sunBurst,
+      rootEntangle: t[lang].skillDesc_rootEntangle,
+      poisonCloud: t[lang].skillDesc_poisonCloud,
+      solGenerator: t[lang].skillDesc_solGenerator,
+      grass: t[lang].skillDesc_grass,
+      damage: t[lang].skillDesc_damage,
+      speed: t[lang].skillDesc_speed,
+      click: t[lang].skillDesc_click,
+      energy: t[lang].skillDesc_energy,
+      evolutionSpeed: t[lang].skillDesc_evolutionSpeed,
+    };
+    return id ? (descs[id] ?? '') : '';
   };
 
   const getSkillEvolutions = (id: string | null) => {
@@ -1037,8 +1036,8 @@ export default function App() {
         message={confirmModal.message}
         onConfirm={confirmModal.onConfirm}
         onCancel={() => setConfirmModal(prev => ({ ...prev, open: false }))}
-        confirmText="Wipe Save"
-        cancelText="Cancel"
+        confirmText={t[lang].wipeSave}
+        cancelText={t[lang].cancel}
         destructive
         lang={lang}
       />
@@ -1046,7 +1045,21 @@ export default function App() {
   );
 }
 
-function UpgradeButton({ icon, title, level, cost, count, canAfford, onClick, onIconClick, formatNumber, lang, colorClass }: any) {
+interface UpgradeButtonProps {
+  icon: React.ReactNode;
+  title: string;
+  level: number;
+  cost: number;
+  count: number;
+  canAfford: boolean;
+  onClick: () => void;
+  onIconClick?: () => void;
+  formatNumber: (n: number) => string;
+  lang: Language;
+  colorClass: string;
+}
+
+function UpgradeButton({ icon, title, level, cost, count, canAfford, onClick, onIconClick, formatNumber, lang, colorClass }: UpgradeButtonProps) {
   return (
     <div
       className={`relative w-full flex flex-col p-4 rounded-2xl border transition-all duration-200 text-left overflow-hidden group ${
@@ -1103,7 +1116,29 @@ function UpgradeButton({ icon, title, level, cost, count, canAfford, onClick, on
   );
 }
 
-function AbilityButton({ icon, title, ability, cost, count, canAfford, onClick, onIconClick, formatNumber, lang, colorClass }: any) {
+interface AbilityData {
+  level: number;
+  cooldown: number;
+  maxCooldown: number;
+  active: boolean;
+  evolutions: string[];
+}
+
+interface AbilityButtonProps {
+  icon: React.ReactNode;
+  title: string;
+  ability: AbilityData;
+  cost: number;
+  count: number;
+  canAfford: boolean;
+  onClick: () => void;
+  onIconClick?: () => void;
+  formatNumber: (n: number) => string;
+  lang: Language;
+  colorClass: string;
+}
+
+function AbilityButton({ icon, title, ability, cost, count, canAfford, onClick, onIconClick, formatNumber, lang, colorClass }: AbilityButtonProps) {
   const isUnlocked = ability.level > 0;
   const cooldownPercent = isUnlocked ? Math.max(0, (ability.cooldown / ability.maxCooldown) * 100) : 0;
 
@@ -1146,7 +1181,7 @@ function AbilityButton({ icon, title, ability, cost, count, canAfford, onClick, 
       
       {/* Line 2: Level */}
       <div className="text-[10px] font-bold text-stone-500 uppercase tracking-widest relative z-10 mb-3 ml-1">
-        {isUnlocked ? `${t[lang].level} ${ability.level}` : 'Locked'}
+        {isUnlocked ? `${t[lang].level} ${ability.level}` : t[lang].locked}
       </div>
       
       {/* Line 3: Upgrade Button */}
@@ -1159,7 +1194,7 @@ function AbilityButton({ icon, title, ability, cost, count, canAfford, onClick, 
             : 'bg-stone-900/50 border-stone-800 text-stone-500 cursor-not-allowed'
         }`}
       >
-        <span className="text-sm uppercase tracking-wider">{isUnlocked ? t[lang].upgrades : 'Unlock'} {count > 1 ? `x${count}` : ''}</span>
+        <span className="text-sm uppercase tracking-wider">{isUnlocked ? t[lang].upgrades : t[lang].unlock} {count > 1 ? `x${count}` : ''}</span>
         <div className="flex items-center gap-1.5 bg-black/40 px-2 py-0.5 rounded-lg border border-black/50">
           <Zap className={`w-3.5 h-3.5 ${canAfford ? 'text-yellow-400 fill-yellow-400/20' : 'text-stone-600'}`} />
           <span className={`font-mono font-black text-sm ${canAfford ? 'text-yellow-400' : 'text-stone-500'}`}>

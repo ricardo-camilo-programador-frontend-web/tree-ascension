@@ -1,5 +1,6 @@
-import React, { useRef, useEffect } from 'react';
+import { useRef, useEffect } from 'react';
 import { X } from 'lucide-react';
+import { t, Language } from '../i18n';
 
 interface ConfirmModalProps {
   open: boolean;
@@ -10,7 +11,8 @@ interface ConfirmModalProps {
   confirmText?: string;
   cancelText?: string;
   destructive?: boolean;
-  lang: string;
+  closeOnBackdrop?: boolean;
+  lang: Language;
 }
 
 export default function ConfirmModal({
@@ -19,19 +21,26 @@ export default function ConfirmModal({
   message,
   onConfirm,
   onCancel,
-  confirmText = 'Confirm',
-  cancelText = 'Cancel',
+  confirmText,
+  cancelText,
   destructive = true,
+  closeOnBackdrop = false,
+  lang,
 }: ConfirmModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
   const onCancelRef = useRef(onCancel);
+  const onConfirmRef = useRef(onConfirm);
   const cancelBtnRef = useRef<HTMLButtonElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
 
-  // Keep callback ref up to date without triggering effect re-subscription
+  // Keep callback refs up to date without triggering effect re-subscription
   useEffect(() => {
     onCancelRef.current = onCancel;
   }, [onCancel]);
+
+  useEffect(() => {
+    onConfirmRef.current = onConfirm;
+  }, [onConfirm]);
 
   useEffect(() => {
     if (!open) return;
@@ -42,35 +51,58 @@ export default function ConfirmModal({
       cancelBtnRef.current?.focus();
     }, 0);
 
-    const handleEscape = (e: KeyboardEvent) => {
+    const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        e.preventDefault();
         onCancelRef.current();
+        return;
+      }
+
+      // Tab focus trap
+      if (e.key === 'Tab' && modalRef.current) {
+        const focusable = modalRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
       }
     };
 
-    const handleFocusTrap = (e: FocusEvent) => {
-      if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
-        modalRef.current.focus();
-      }
-    };
-
-    document.addEventListener('keydown', handleEscape);
-    document.addEventListener('focusin', handleFocusTrap);
+    document.addEventListener('keydown', handleKeyDown);
 
     return () => {
-      document.removeEventListener('keydown', handleEscape);
-      document.removeEventListener('focusin', handleFocusTrap);
-      // Restore focus on close
-      previousFocusRef.current?.focus();
+      document.removeEventListener('keydown', handleKeyDown);
+      // Restore focus only if element is still in DOM
+      if (previousFocusRef.current?.isConnected) {
+        previousFocusRef.current.focus();
+      }
     };
   }, [open]);
 
   if (!open) return null;
 
+  const resolvedConfirmText = confirmText ?? t[lang].confirm;
+  const resolvedCancelText = cancelText ?? t[lang].cancel;
+
+  const handleBackdropClick = () => {
+    if (closeOnBackdrop) {
+      onCancelRef.current();
+    }
+  };
+
   return (
     <div
       className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/90 backdrop-blur-md"
-      onClick={() => onCancelRef.current()}
+      onClick={handleBackdropClick}
     >
       <div
         ref={modalRef}
@@ -86,7 +118,7 @@ export default function ConfirmModal({
           <h2 id="modal-title" className={`text-xl font-black ${destructive ? 'text-red-400' : 'text-emerald-400'}`}>
             {title}
           </h2>
-          <button onClick={() => onCancelRef.current()} className="text-stone-500 hover:text-white transition-colors" aria-label="Close modal">
+          <button onClick={() => onCancelRef.current()} className="text-stone-500 hover:text-white transition-colors" aria-label={t[lang].closeModal}>
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -97,17 +129,17 @@ export default function ConfirmModal({
             onClick={() => onCancelRef.current()}
             className="flex-1 py-2.5 rounded-xl font-bold bg-stone-800 text-stone-400 hover:bg-stone-700 hover:text-white transition-colors"
           >
-            {cancelText}
+            {resolvedCancelText}
           </button>
           <button
-            onClick={onConfirm}
+            onClick={() => onConfirmRef.current()}
             className={`flex-1 py-2.5 rounded-xl font-bold transition-all active:scale-95 ${
               destructive
-              ? 'bg-red-600 text-white hover:bg-red-500 shadow-lg shadow-red-900/20'
-              : 'bg-emerald-600 text-white hover:bg-emerald-500 shadow-lg shadow-emerald-900/20'
+                ? 'bg-red-600 text-white hover:bg-red-500 shadow-lg shadow-red-900/20'
+                : 'bg-emerald-600 text-white hover:bg-emerald-500 shadow-lg shadow-emerald-900/20'
             }`}
           >
-            {confirmText}
+            {resolvedConfirmText}
           </button>
         </div>
       </div>
