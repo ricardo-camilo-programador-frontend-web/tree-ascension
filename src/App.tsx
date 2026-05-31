@@ -15,6 +15,8 @@ import SettingsModal from './components/SettingsModal';
 import ResetModal from './components/ResetModal';
 import SkillEvolutionModal from './components/SkillEvolutionModal';
 import SkillInfoModal from './components/SkillInfoModal';
+import { ToastContainer, showToast } from './components/Toast';
+import ConfirmModal from './components/ConfirmModal';
 
 // Optimized UI state mapper
 const mapStateToUI = (state: GameState) => ({
@@ -55,6 +57,7 @@ export default function App() {
   const [importError, setImportError] = useState('');
   const [copySuccess, setCopySuccess] = useState(false);
   const [audio, setAudio] = useState<AudioSettings>(getAudioSettings());
+  const [confirmModal, setConfirmModal] = useState<{ open: boolean; title: string; message: string; onConfirm: () => void; onCancel: () => void; confirmText?: string; cancelText?: string; destructive?: boolean; lang: Language }>({ open: false, title: '', message: '', onConfirm: () => {}, onCancel: () => {} });
 
   useEffect(() => {
     initGlobalAds();
@@ -69,6 +72,10 @@ export default function App() {
       gameState.current = loadedState;
       setUiState(mapStateToUI(loadedState));
     }
+
+    // Initialize audio settings from localStorage
+    const savedAudio = getAudioSettings();
+    setAudio(savedAudio);
 
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -143,7 +150,7 @@ export default function App() {
 
   const handleManualSave = () => {
     saveGame(gameState.current);
-    alert(t[lang].saveGame + ' OK!');
+    showToast(t[lang].saveSuccess, 'success');
   };
 
   const handleExport = () => {
@@ -172,17 +179,28 @@ export default function App() {
       setImportString('');
       setImportError('');
       setShowSettingsModal(false);
-      alert('Save imported successfully!');
+      showToast(t[lang].saveImported, 'success');
     } catch (e) {
-      setImportError('Invalid save string');
+      setImportError(t[lang].invalidSaveString);
     }
   };
 
   const handleHardReset = () => {
-    if (confirm('Are you sure? This will wipe your save completely!')) {
-      resetSave();
-      window.location.reload();
-    }
+    setConfirmModal({
+      open: true,
+      title: t[lang].hardReset,
+      message: t[lang].hardResetMessage,
+      onConfirm: () => {
+        setConfirmModal(prev => ({ ...prev, open: false }));
+        resetSave();
+        window.location.reload();
+      },
+      onCancel: () => setConfirmModal(prev => ({ ...prev, open: false })),
+      confirmText: t[lang].wipeSave,
+      cancelText: t[lang].cancel,
+      destructive: true,
+      lang: lang,
+    });
   };
 
   const handleResetClick = () => {
@@ -196,7 +214,7 @@ export default function App() {
     if (success) {
       setShowResetModal(false);
       setUiState(mapStateToUI(gameState.current));
-      alert(`Prestige Activated! +${formatNumber(gameState.current.energy)} Starting Energy`);
+      showToast(`${t[lang].prestigeActivated} +${formatNumber(gameState.current.energy)} ${t[lang].startingEnergy}`, 'info');
     }
   };
 
@@ -815,7 +833,23 @@ export default function App() {
       </div>
 
       {/* Moringa Info Section */}
-      <MoringaInfo />
-    </div>
-  );
+      <MoringaInfo lang={lang} />
+
+      {/* Toast Notifications */}
+      <ToastContainer />
+
+      {/* Hard Reset Confirm Modal */}
+      <ConfirmModal
+        open={confirmModal.open}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        onConfirm={confirmModal.onConfirm}
+        onCancel={confirmModal.onCancel}
+        confirmText={confirmModal.confirmText}
+        cancelText={confirmModal.cancelText}
+        destructive={confirmModal.destructive}
+        lang={confirmModal.lang}
+      />
+      </div>
+      );
 }
