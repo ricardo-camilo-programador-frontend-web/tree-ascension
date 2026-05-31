@@ -3,38 +3,7 @@ import { formatNumber } from './utils/number';
 
 let _nextId = 0;
 const nextId = (): string => String(++_nextId);
-/** Sync the ID counter past the highest existing entity ID to prevent collisions after save/load. */
-export const syncNextId = (state: GameState): void => {
-  let maxId = 0;
-  for (const zombie of state.zombies) {
-    const id = parseInt(zombie.id);
-    if (!isNaN(id) && id > maxId) maxId = id;
-  }
-  for (const projectile of state.projectiles) {
-    const id = parseInt(projectile.id);
-    if (!isNaN(id) && id > maxId) maxId = id;
-  }
-  for (const particle of state.particles) {
-    const id = parseInt(particle.id);
-    if (!isNaN(id) && id > maxId) maxId = id;
-  }
-  for (const coin of state.coins) {
-    const id = parseInt(coin.id);
-    if (!isNaN(id) && id > maxId) maxId = id;
-  }
-  for (const sun of state.suns) {
-    const id = parseInt(sun.id);
-    if (!isNaN(id) && id > maxId) maxId = id;
-  }
-  for (const sunBurst of state.sunBursts) {
-    const id = parseInt(sunBurst.id);
-    if (!isNaN(id) && id > maxId) maxId = id;
-  }
-  _nextId = maxId;
-};
-const resetNextId = (): void => {
-  _nextId = 0;
-};
+
 
 export const INTERNAL_W = 1024;
 export const INTERNAL_H = 576;
@@ -226,6 +195,10 @@ export interface GameState {
 
 export const calculateMaxHp = (level: number): number => {
   return 10000 + (Math.floor(level / 50) * 10000);
+};
+
+const resetNextId = (): void => {
+  _nextId = 0;
 };
 
 export const createInitialState = (): GameState => ({
@@ -452,18 +425,19 @@ export const calculateSkillDamage = (state: GameState, skillId: string): number 
   const baseDamage = calculatePlantDamage(state);
   
   switch (skillId) {
-    case 'sunBurst':
+    case 'sunBurst': {
       let sbDamage = baseDamage * 5 * Math.pow(1.15, state.abilities.sunBurst.level - 1);
       if (state.abilities.sunBurst.evolutions.includes('double_burst')) sbDamage *= 1.5;
       return sbDamage;
-      
+    }
     case 'poisonCloud':
       return baseDamage * 0.5 * Math.pow(1.15, state.abilities.poisonCloud.level - 1);
       
-    case 'grass':
+    case 'grass': {
       let grassDamage = 5 * Math.pow(1.15, state.upgrades.grassLevel);
       if (state.upgrades.grassEvolutions.includes('poison_grass')) grassDamage *= 1.5;
       return grassDamage;
+    }
       
     case 'rootEntangle':
       // Root entangle damage over time evolution

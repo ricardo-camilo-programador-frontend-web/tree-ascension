@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { GameState, createInitialState, updateGame, drawGame, handleCanvasClick, buyUpgrade, getUpgradeCostTotal, INTERNAL_W, INTERNAL_H, resetGame } from './game';
+import { GameState, createInitialState, updateGame, drawGame, handleCanvasClick, buyUpgrade, getUpgradeCostTotal, getEvolutionSpeed, INTERNAL_W, INTERNAL_H, resetGame } from './game';
 import { saveGame, loadGame, exportSave, importSave, resetSave } from './saveSystem';
 import { checkAndUnlockAchievements } from './achievements';
 import { formatNumber } from './utils/number';
@@ -109,6 +109,7 @@ export default function App() {
   const [importString, setImportString] = useState('');
   const [importError, setImportError] = useState('');
   const [copySuccess, setCopySuccess] = useState(false);
+  const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [audio, setAudio] = useState<AudioSettings>(getAudioSettings());
   const [confirmModal, setConfirmModal] = useState<{ open: boolean; title: string; message: string; onConfirm: () => void; onCancel: () => void; confirmText?: string; cancelText?: string; destructive?: boolean; lang: Language }>({ open: false, title: '', message: '', onConfirm: () => {}, onCancel: () => {} });
   const [showProgressPanel, setShowProgressPanel] = useState(false);
@@ -197,6 +198,7 @@ export default function App() {
       clearInterval(uiInterval);
       clearInterval(fpsInterval);
       clearInterval(saveInterval);
+      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
     };
   }, []);
 
@@ -222,7 +224,7 @@ export default function App() {
   };
 
   const getCostInfo = (type: string, level: number) => {
-    return getUpgradeCostTotal(type, level, uiState, buyMultiplier);
+    return getUpgradeCostTotal(type, level, gameState.current, buyMultiplier);
   };
 
   const handleManualSave = () => {
@@ -240,7 +242,8 @@ export default function App() {
     try {
       await navigator.clipboard.writeText(exportString);
       setCopySuccess(true);
-      setTimeout(() => setCopySuccess(false), 2000);
+      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+      copyTimeoutRef.current = setTimeout(() => setCopySuccess(false), 2000);
     } catch (err) {
       console.error('Failed to copy', err);
     }
@@ -345,14 +348,22 @@ export default function App() {
     }
   };
 
+  const upgradeLevelMap: Record<string, keyof typeof uiState.upgrades> = {
+    damage: 'damageLevel',
+    speed: 'speedLevel',
+    click: 'clickLevel',
+    energy: 'energyLevel',
+    evolutionSpeed: 'evolutionSpeedLevel',
+  };
+
   const getSkillLevel = (id: string | null) => {
     if (!id) return 0;
     if (['sunBurst', 'rootEntangle', 'poisonCloud', 'solGenerator'].includes(id)) {
       return uiState.abilities[id as keyof typeof uiState.abilities].level;
     } else if (id === 'grass') {
       return uiState.upgrades.grassLevel;
-    } else if (['damage', 'speed', 'click', 'energy', 'evolutionSpeed'].includes(id)) {
-      return (uiState.upgrades as any)[id + 'Level'];
+    } else if (id in upgradeLevelMap) {
+      return uiState.upgrades[upgradeLevelMap[id]];
     }
     return 0;
   };
@@ -382,22 +393,22 @@ export default function App() {
     } else if (id === 'energy') {
       return `x${formatNumber(uiState.energyMultiplier)}`;
     } else if (id === 'evolutionSpeed') {
-      const speed = 5 * Math.pow(1.3, uiState.upgrades.evolutionSpeedLevel - 1);
+      const speed = getEvolutionSpeed(uiState.upgrades.evolutionSpeedLevel);
       return `${formatNumber(speed)}/s`;
     }
     return '';
   };
 
-  const getSkillCooldown = (id: string | null) => {
-    if (!id) return 0;
+  const getSkillCooldown = (id: string | null): string => {
+    if (!id) return '0';
     if (['sunBurst', 'rootEntangle', 'poisonCloud', 'solGenerator'].includes(id)) {
       const ability = uiState.abilities[id as keyof typeof uiState.abilities];
-      if (ability.maxCooldown === 0) return 0;
+      if (ability.maxCooldown === 0) return '0';
       // Approximate reduction logic from game.ts
       const reduction = 1 - (0.5 * (1 - Math.exp(-0.01 * ability.level)));
       return Math.max(1, ability.maxCooldown * reduction).toFixed(1);
     }
-    return 0;
+    return '0';
   };
 
   const getSkillDescription = (id: string | null) => {
@@ -430,8 +441,10 @@ export default function App() {
     return id.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
   };
 
-  const totalEvolutions = (uiState.plant.level - 1) * 5 + (uiState.plant.stage - 1);
-  const requiredProgress = 100 * Math.pow(1.2, totalEvolutions);
+  const { totalEvolutions, requiredProgress } = useMemo(() => {
+    const totalEvo = (uiState.plant.level - 1) * 5 + (uiState.plant.stage - 1);
+    return { totalEvolutions: totalEvo, requiredProgress: 100 * Math.pow(1.2, totalEvo) };
+  }, [uiState.plant.level, uiState.plant.stage]);
   const evoPercent = Math.max(0, Math.min(100, (uiState.plant.evolutionProgress / requiredProgress) * 100));
 
   const togglePerformance = () => {

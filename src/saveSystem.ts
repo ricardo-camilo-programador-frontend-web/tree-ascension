@@ -251,6 +251,21 @@ export const loadGame = (): GameState | null => {
              if (!Array.isArray(tempState.unlockedAchievements)) {
                tempState.unlockedAchievements = [];
              }
+             // FIX 8: Defensive defaults for legacy saves missing timers/abilities
+             if (!tempState.timers || typeof tempState.timers !== 'object') {
+               tempState.timers = {
+                 lastShot: 0, lastSpawn: 0, gameTime: 0,
+                 lastGrassTick: 0, lastSunSpawn: 0, nextSunSpawnInterval: 15,
+               };
+             }
+             if (!tempState.abilities || typeof tempState.abilities !== 'object') {
+               tempState.abilities = {
+                 sunBurst: { level: 0, cooldown: 0, maxCooldown: 30, active: false, evolutions: [] },
+                 rootEntangle: { level: 0, cooldown: 0, maxCooldown: 45, active: false, evolutions: [] },
+                 poisonCloud: { level: 0, cooldown: 0, maxCooldown: 60, active: false, evolutions: [] },
+                 solGenerator: { level: 0, cooldown: 0, maxCooldown: 0, active: false, evolutions: [] },
+               };
+             }
              const saveData = mapStateToSave(tempState);
              saveGame(tempState); // This will save it in new format
              return tempState;
@@ -307,7 +322,8 @@ function parseAndValidateSave(jsonString: string): GameState | null {
     }
     
     return mapSaveToState(signedSave.data);
-  } catch {
+  } catch (error) {
+    console.warn('Save parse failed:', error);
     return null;
   }
 }
