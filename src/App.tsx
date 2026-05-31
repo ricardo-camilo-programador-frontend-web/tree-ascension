@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { GameState, UpgradeLevelKey, createInitialState, updateGame, drawGame, handleCanvasClick, buyUpgrade, getUpgradeCostTotal, INTERNAL_W, INTERNAL_H, resetGame } from './game';
+import { GameState, UpgradeLevelKey, syncNextId, createInitialState, updateGame, drawGame, handleCanvasClick, buyUpgrade, getUpgradeCostTotal, INTERNAL_W, INTERNAL_H, resetGame } from './game';
 import { saveGame, loadGame, exportSave, importSave, resetSave } from './saveSystem';
 import { formatNumber } from './utils/number';
 import { fpsCounter } from './utils/performance';
@@ -61,6 +61,7 @@ export default function App() {
     const loadedState = loadGame();
     if (loadedState) {
       gameState.current = loadedState;
+      syncNextId(loadedState);
       setUiState(mapStateToUI(loadedState));
     }
 

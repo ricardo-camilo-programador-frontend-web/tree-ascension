@@ -7,6 +7,19 @@ export const INTERNAL_H = 576;
 let _nextId = 0;
 const nextId = (): string => String(++_nextId);
 
+/** Sync the ID counter past the highest existing entity ID to prevent collisions after save/load. */
+export const syncNextId = (state: GameState): void => {
+  const numericIds = [
+    ...state.zombies, ...state.projectiles, ...state.particles,
+    ...state.floatingTexts, ...state.coins, ...state.suns, ...state.sunBursts,
+  ]
+    .map(e => parseInt(e.id, 10))
+    .filter(n => !isNaN(n));
+  _nextId = numericIds.length ? Math.max(...numericIds) : 0;
+};
+
+const resetNextId = (): void => { _nextId = 0; };
+
 export type ZombieType = 'basic' | 'fast' | 'tank' | 'shield' | 'mutant' | 'boss';
 
 export interface Zombie {
@@ -312,6 +325,7 @@ export const resetGame = (state: GameState): boolean => {
   // ... apply other upgrades
   
   Object.assign(state, newState);
+  resetNextId();
   return true;
 };
 
@@ -1189,7 +1203,9 @@ export const buyUpgrade = (state: GameState, type: string, amount: number | 'MAX
     if (['sunBurst', 'rootEntangle', 'poisonCloud', 'solGenerator'].includes(type)) {
       level = state.abilities[type as keyof typeof state.abilities].level;
     } else {
-      level = state.upgrades[type + 'Level' as UpgradeLevelKey];
+      const key = type + 'Level' as UpgradeLevelKey;
+      if (!(key in state.upgrades)) break;
+      level = state.upgrades[key];
     }
 
     const cost = getUpgradeCost(type, level, state);
@@ -1235,7 +1251,8 @@ export const buyUpgrade = (state: GameState, type: string, amount: number | 'MAX
           }
         }
       } else {
-        state.upgrades[type + 'Level' as UpgradeLevelKey]++;
+        const key = type + 'Level' as UpgradeLevelKey;
+        if (key in state.upgrades) state.upgrades[key]++;
         
         if (type === 'grass') {
            const newLevel = state.upgrades.grassLevel;

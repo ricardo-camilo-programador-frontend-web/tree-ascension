@@ -66,6 +66,8 @@ src/
 ├── i18n.ts              # Internationalization (20 languages)
 ├── saveSystem.ts        # Save/load/export/import with integrity
 ├── main.tsx             # Entry point
+├── ads/
+│   └── adsterra.ts        # Ad integration
 ├── components/
 │   ├── MoringaInfo.tsx   # Educational section about Moringa Oleifera
 │   └── AdsterraAd.tsx    # Ad integration
