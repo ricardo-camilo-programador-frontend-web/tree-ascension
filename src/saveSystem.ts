@@ -87,8 +87,8 @@ function mapStateToSave(state: GameState): SaveData {
     },
     stats: {
       totalEnergyGenerated: state.stats.totalEnergyGenerated,
-      totalClicks: 0, // TODO: track clicks
-      totalPlayTime: 0, // TODO: track play time
+      totalClicks: state.stats.totalClicks,
+      totalPlayTime: state.timers.gameTime,
     },
   };
 }
@@ -128,11 +128,14 @@ function mapSaveToState(save: SaveData): GameState {
     state.upgrades.evolutionSpeedLevel = save.upgrades.levels.evolutionSpeedLevel || 1;
     state.upgrades.grassLevel = save.upgrades.levels.grassLevel || 0;
     state.upgrades.grassEvolutions = save.upgrades.grassEvolutions || [];
-  } else if ((save as any).upgrades && typeof (save as any).upgrades.damageLevel === 'number') {
-    // Legacy fallback if structure was different (though this is new system)
-    // Just in case I messed up the first version
-    const oldUpgrades = (save as any).upgrades;
-    state.upgrades = { ...state.upgrades, ...oldUpgrades };
+  } else if (save.upgrades && typeof (save.upgrades as Record<string, unknown>).damageLevel === 'number') {
+    // Legacy fallback if structure was different
+    const oldUpgrades = save.upgrades as Record<string, unknown>;
+    for (const key of Object.keys(state.upgrades)) {
+      if (typeof oldUpgrades[key] === 'number') {
+        (state.upgrades as Record<string, unknown>)[key] = oldUpgrades[key];
+      }
+    }
   }
   
   // Restore skills
@@ -162,6 +165,12 @@ function mapSaveToState(save: SaveData): GameState {
   
   // Restore stats
   state.stats.totalEnergyGenerated = save.stats.totalEnergyGenerated;
+  state.stats.totalClicks = save.stats.totalClicks || 0;
+  
+  // Restore play time — adjust gameTime forward by saved play time
+  if (save.stats.totalPlayTime > 0) {
+    state.timers.gameTime = save.stats.totalPlayTime;
+  }
   
   // Recalculate derived stats
   state.plant.damageMultiplier = Math.pow(1.15, state.upgrades.damageLevel - 1);
@@ -201,6 +210,31 @@ export const saveGame = (state: GameState) => {
     };
     
     const finalString = JSON.stringify(signedSave);
+    
+    // Check localStorage space before writing
+    try {
+      const testKey = '__storage_test__';
+      const before = JSON.stringify(localStorage).length;
+      localStorage.setItem(testKey, 'x'.repeat(1024));
+      const after = JSON.stringify(localStorage).length;
+      localStorage.removeItem(testKey);
+      const availableBytes = Math.max(0, 5242880 - after); // ~5MB typical limit
+      if (finalString.length > availableBytes) {
+        console.warn('localStorage almost full, skipping backup');
+        localStorage.setItem(SAVE_KEY, finalString);
+        return;
+      }
+    } catch {
+      // Storage full — try writing main save only
+      try {
+        localStorage.removeItem(BACKUP_KEY);
+        localStorage.setItem(SAVE_KEY, finalString);
+        console.warn('localStorage full, saved without backup');
+      } catch {
+        console.error('Cannot save — localStorage is completely full');
+      }
+      return;
+    }
     
     // Backup previous save
     const currentSave = localStorage.getItem(SAVE_KEY);
