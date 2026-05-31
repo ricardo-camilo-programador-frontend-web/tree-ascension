@@ -1,6 +1,6 @@
 {
-  "name": "Idle Tower Defense",
-  "short_name": "Idle TD",
+  "name": "Tree Ascension",
+  "short_name": "Tree Ascension",
   "description": "A 2D incremental idle tower defense game inspired by Cookie Clicker and Plants vs. Zombies.",
   "start_url": "/",
   "display": "standalone",

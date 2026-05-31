@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { GameState, createInitialState, updateGame, drawGame, handleCanvasClick, buyUpgrade, getUpgradeCostTotal, INTERNAL_W, INTERNAL_H, resetGame } from './game';
+import { GameState, UpgradeLevelKey, createInitialState, updateGame, drawGame, handleCanvasClick, buyUpgrade, getUpgradeCostTotal, INTERNAL_W, INTERNAL_H, resetGame } from './game';
 import { saveGame, loadGame, exportSave, importSave, resetSave } from './saveSystem';
 import { formatNumber } from './utils/number';
 import { fpsCounter } from './utils/performance';
@@ -251,7 +251,7 @@ export default function App() {
     } else if (id === 'grass') {
       return uiState.upgrades.grassLevel;
     } else if (['damage', 'speed', 'click', 'energy', 'evolutionSpeed'].includes(id)) {
-      return (uiState.upgrades as any)[id + 'Level'];
+      return uiState.upgrades[id + 'Level' as UpgradeLevelKey];
     }
     return 0;
   };

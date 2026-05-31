@@ -4,6 +4,9 @@ import { formatNumber } from './utils/number';
 export const INTERNAL_W = 1024;
 export const INTERNAL_H = 576;
 
+let _nextId = 0;
+const nextId = (): string => String(++_nextId);
+
 export type ZombieType = 'basic' | 'fast' | 'tank' | 'shield' | 'mutant' | 'boss';
 
 export interface Zombie {
@@ -184,6 +187,8 @@ export interface GameState {
   lastTimestamp: number;
 }
 
+export type UpgradeLevelKey = 'damageLevel' | 'speedLevel' | 'clickLevel' | 'energyLevel' | 'evolutionSpeedLevel' | 'grassLevel';
+
 export const calculateMaxHp = (level: number): number => {
   return 10000 + (Math.floor(level / 50) * 10000);
 };
@@ -360,7 +365,7 @@ const spawnZombie = (state: GameState) => {
   }
 
   state.zombies.push({
-    id: Math.random().toString(),
+    id: nextId(),
     type,
     level: state.wave,
     x: INTERNAL_W + 50,
@@ -452,7 +457,7 @@ export const applyDamageToZombie = (state: GameState, zombie: Zombie, amount: nu
   
   // Visual feedback
   state.floatingTexts.push({
-    id: Math.random().toString(),
+    id: nextId(),
     text: formatNumber(amount),
     x: zombie.x, 
     y: zombie.y - zombie.size - 10,
@@ -466,7 +471,7 @@ export const applyDamageToZombie = (state: GameState, zombie: Zombie, amount: nu
     // Extra particles for crit
     for (let k = 0; k < 5; k++) {
       state.particles.push({
-        id: Math.random().toString(),
+        id: nextId(),
         x: zombie.x, y: zombie.y,
         vx: (Math.random() - 0.5) * 300,
         vy: (Math.random() - 0.5) * 300,
@@ -485,7 +490,7 @@ export const applyDamageToPlayer = (state: GameState, amount: number) => {
 
   // Visual feedback for player damage
   state.floatingTexts.push({
-    id: Math.random().toString(),
+    id: nextId(),
     text: `-${formatNumber(amount)}`,
     x: 150, // Player position (approx)
     y: INTERNAL_H - 150,
@@ -554,7 +559,7 @@ const runUpdateStep = (state: GameState, dt: number) => {
     // Level up effect
     for (let k = 0; k < 30; k++) {
       state.particles.push({
-        id: Math.random().toString(),
+        id: nextId(),
         x: 150, y: INTERNAL_H - 100,
         vx: (Math.random() - 0.5) * 400,
         vy: (Math.random() - 0.5) * 400,
@@ -579,7 +584,7 @@ const runUpdateStep = (state: GameState, dt: number) => {
     
     if (state.abilities.sunBurst.evolutions.includes('larger_radius')) radius = 1.5;
 
-    state.sunBursts.push({ id: Math.random().toString(), x: 150, y: INTERNAL_H - 100, life: 0, maxLife: radius });
+    state.sunBursts.push({ id: nextId(), x: 150, y: INTERNAL_H - 100, life: 0, maxLife: radius });
     playSunBurstSound();
 
     state.zombies.forEach(z => {
@@ -594,7 +599,7 @@ const runUpdateStep = (state: GameState, dt: number) => {
       }
       for (let k = 0; k < 5; k++) {
         state.particles.push({
-          id: Math.random().toString(), x: z.x, y: z.y,
+          id: nextId(), x: z.x, y: z.y,
           vx: (Math.random() - 0.5) * 400 * radius, vy: (Math.random() - 0.5) * 400 * radius,
           life: 0, maxLife: 0.8, color: '#fef08a', size: 5,
         });
@@ -616,7 +621,7 @@ const runUpdateStep = (state: GameState, dt: number) => {
       z.slowAmount = slowAmount;
       for (let k = 0; k < 5; k++) {
         state.particles.push({
-          id: Math.random().toString(), x: z.x, y: z.y,
+          id: nextId(), x: z.x, y: z.y,
           vx: (Math.random() - 0.5) * 100, vy: (Math.random() - 0.5) * 100,
           life: 0, maxLife: 0.5, color: '#84cc16', size: 4,
         });
@@ -641,7 +646,7 @@ const runUpdateStep = (state: GameState, dt: number) => {
       z.poisonTicks = ticks;
       for (let k = 0; k < 10; k++) {
         state.particles.push({
-          id: Math.random().toString(), x: z.x, y: z.y,
+          id: nextId(), x: z.x, y: z.y,
           vx: (Math.random() - 0.5) * 150, vy: (Math.random() - 0.5) * 150,
           life: 0, maxLife: 1, color: '#a855f7', size: 6,
         });
@@ -673,7 +678,7 @@ const runUpdateStep = (state: GameState, dt: number) => {
         // Grass spikes emerging effect
         if (Math.random() > 0.3) {
           state.particles.push({
-            id: Math.random().toString(),
+            id: nextId(),
             x: z.x + (Math.random() - 0.5) * z.size, 
             y: INTERNAL_H - 100, // Ground level
             vx: 0, vy: -100 - Math.random() * 50,
@@ -707,7 +712,7 @@ const runUpdateStep = (state: GameState, dt: number) => {
     
     for (let i = 0; i < sunCount; i++) {
       state.suns.push({
-        id: Math.random().toString(),
+        id: nextId(),
         x: x + (Math.random() - 0.5) * 50,
         y: -50 - (Math.random() * 50),
         targetY: targetY + (Math.random() - 0.5) * 50,
@@ -796,7 +801,7 @@ const runUpdateStep = (state: GameState, dt: number) => {
     if (target) {
       playShootSound();
       state.projectiles.push({
-        id: Math.random().toString(),
+        id: nextId(),
         x: 150,
         y: INTERNAL_H - 120,
         speed: 400,
@@ -827,7 +832,7 @@ const runUpdateStep = (state: GameState, dt: number) => {
 
         for (let k = 0; k < 5; k++) {
           state.particles.push({
-            id: Math.random().toString(),
+            id: nextId(),
             x: p.x, y: p.y,
             vx: (Math.random() - 0.5) * 200,
             vy: (Math.random() - 0.5) * 200,
@@ -873,7 +878,7 @@ const runUpdateStep = (state: GameState, dt: number) => {
       if (z.hp < 0) z.hp = 0;
       if (Math.random() < 0.1) { // Visual effect
         state.particles.push({
-          id: Math.random().toString(), x: z.x, y: z.y,
+          id: nextId(), x: z.x, y: z.y,
           vx: (Math.random() - 0.5) * 50, vy: -50 - Math.random() * 50,
           life: 0, maxLife: 0.4, color: '#f97316', size: 3
         });
@@ -921,7 +926,7 @@ const runUpdateStep = (state: GameState, dt: number) => {
       state.zombies.splice(i, 1);
 
       state.floatingTexts.push({
-        id: Math.random().toString(),
+        id: nextId(),
         text: `+${Math.floor(reward)}`,
         x: z.x, y: z.y - z.size - 20,
         life: 0, maxLife: 1,
@@ -947,7 +952,7 @@ const runUpdateStep = (state: GameState, dt: number) => {
 
       for (let k = 0; k < 10; k++) {
         state.particles.push({
-          id: Math.random().toString(),
+          id: nextId(),
           x: 150, y: INTERNAL_H - 100,
           vx: (Math.random() - 0.5) * 300,
           vy: (Math.random() - 0.5) * 300 - 100,
@@ -1030,7 +1035,7 @@ export const handleCanvasClick = (state: GameState, x: number, y: number, canvas
       state.suns.splice(i, 1);
       
       state.floatingTexts.push({
-        id: Math.random().toString(),
+        id: nextId(),
         text: `+${Math.floor(reward)}`,
         x: s.x, y: s.y,
         life: 0, maxLife: 1.5,
@@ -1039,7 +1044,7 @@ export const handleCanvasClick = (state: GameState, x: number, y: number, canvas
 
       for (let k = 0; k < 20; k++) {
         state.particles.push({
-          id: Math.random().toString(),
+          id: nextId(),
           x: s.x, y: s.y,
           vx: (Math.random() - 0.5) * 400,
           vy: (Math.random() - 0.5) * 400,
@@ -1066,7 +1071,7 @@ export const handleCanvasClick = (state: GameState, x: number, y: number, canvas
       // Click impact effect
       for (let k = 0; k < (isCrit ? 15 : 8); k++) {
         state.particles.push({
-          id: Math.random().toString(),
+          id: nextId(),
           x: internalX, y: internalY,
           vx: (Math.random() - 0.5) * (isCrit ? 400 : 250),
           vy: (Math.random() - 0.5) * (isCrit ? 400 : 250),
@@ -1084,7 +1089,7 @@ export const handleCanvasClick = (state: GameState, x: number, y: number, canvas
         const valuePerCoin = reward / numCoins;
         for (let k = 0; k < numCoins; k++) {
           state.coins.push({
-            id: Math.random().toString(),
+            id: nextId(),
             x: z.x + (Math.random() - 0.5) * 20,
             y: z.y - z.size / 2,
             vx: (Math.random() - 0.5) * 200,
@@ -1115,7 +1120,7 @@ export const handleCanvasClick = (state: GameState, x: number, y: number, canvas
     state.energy += reward;
     state.stats.totalEnergyGenerated += reward;
     state.floatingTexts.push({
-      id: Math.random().toString(),
+      id: nextId(),
       text: `+${formatNumber(reward)}`,
       x: internalX, y: internalY,
       life: 0, maxLife: 0.5,
@@ -1184,7 +1189,7 @@ export const buyUpgrade = (state: GameState, type: string, amount: number | 'MAX
     if (['sunBurst', 'rootEntangle', 'poisonCloud', 'solGenerator'].includes(type)) {
       level = state.abilities[type as keyof typeof state.abilities].level;
     } else {
-      level = (state.upgrades as any)[type + 'Level'];
+      level = state.upgrades[type + 'Level' as UpgradeLevelKey];
     }
 
     const cost = getUpgradeCost(type, level, state);
@@ -1230,7 +1235,7 @@ export const buyUpgrade = (state: GameState, type: string, amount: number | 'MAX
           }
         }
       } else {
-        (state.upgrades as any)[type + 'Level']++;
+        state.upgrades[type + 'Level' as UpgradeLevelKey]++;
         
         if (type === 'grass') {
            const newLevel = state.upgrades.grassLevel;
