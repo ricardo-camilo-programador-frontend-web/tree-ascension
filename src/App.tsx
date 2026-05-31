@@ -412,55 +412,59 @@ export default function App() {
         
         {/* Settings Modal */}
         {showSettingsModal && (
-          <SettingsModal
-            audio={audio}
-            onToggleMute={toggleMute}
-            onVolumeChange={handleVolumeChange}
-            lowPerformance={!!uiState.settings?.lowPerformance}
-            onTogglePerformance={togglePerformance}
-            onManualSave={handleManualSave}
-            onExport={handleExport}
-            exportString={exportString}
-            onCopyExport={handleCopyExport}
-            copySuccess={copySuccess}
-            importString={importString}
-            onImportStringChange={setImportString}
-            onImport={handleImport}
-            importError={importError}
-            onHardReset={handleHardReset}
-            onClose={() => setShowSettingsModal(false)}
-          />
+        <SettingsModal
+        audio={audio}
+        onToggleMute={toggleMute}
+        onVolumeChange={handleVolumeChange}
+        lowPerformance={!!uiState.settings?.lowPerformance}
+        onTogglePerformance={togglePerformance}
+        onManualSave={handleManualSave}
+        onExport={handleExport}
+        exportString={exportString}
+        onCopyExport={handleCopyExport}
+        copySuccess={copySuccess}
+        importString={importString}
+        onImportStringChange={setImportString}
+        onImport={handleImport}
+        importError={importError}
+        onHardReset={handleHardReset}
+        onClose={() => setShowSettingsModal(false)}
+        lang={lang}
+        />
         )}
 
         {/* Reset Modal */}
         {showResetModal && (
-          <ResetModal
-            resets={uiState.resets}
-            onCancel={() => setShowResetModal(false)}
-            onConfirm={confirmReset}
-          />
+        <ResetModal
+        resets={uiState.resets}
+        onCancel={() => setShowResetModal(false)}
+        onConfirm={confirmReset}
+        lang={lang}
+        />
         )}
 
         {/* Modal Overlay */}
         {uiState.modal.isOpen && uiState.modal.type === 'skillEvolution' && (
-          <SkillEvolutionModal
-            options={uiState.modal.options}
-            onSelect={handleModalSelect}
-          />
+        <SkillEvolutionModal
+        options={uiState.modal.options}
+        onSelect={handleModalSelect}
+        lang={lang}
+        />
         )}
 
         {uiState.modal.isOpen && uiState.modal.type === 'skillInfo' && (
-          <SkillInfoModal
-            skillId={uiState.modal.skillId}
-            onClose={handleModalClose}
-            getSkillName={getSkillName}
-            getSkillLevel={getSkillLevel}
-            getSkillEffect={getSkillEffect}
-            getSkillCooldown={getSkillCooldown}
-            getSkillDescription={getSkillDescription}
-            getSkillEvolutions={getSkillEvolutions}
-            formatEvolutionName={formatEvolutionName}
-          />
+        <SkillInfoModal
+        skillId={uiState.modal.skillId}
+        onClose={handleModalClose}
+        getSkillName={getSkillName}
+        getSkillLevel={getSkillLevel}
+        getSkillEffect={getSkillEffect}
+        getSkillCooldown={getSkillCooldown}
+        getSkillDescription={getSkillDescription}
+        getSkillEvolutions={getSkillEvolutions}
+        formatEvolutionName={formatEvolutionName}
+        lang={lang}
+        />
         )}
 
         {/* Left Side Ad Slot (Desktop) */}
