@@ -17,6 +17,8 @@ import { formatNumber } from '../utils/number';
 import type { Language, TranslationSet } from '../i18n/types';
 import { t } from '../i18n';
 import { ACHIEVEMENTS, type AchievementDef } from '../achievements';
+// FIX 7: Import shared UIState type from App.tsx
+import type { UIState } from '../App';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -24,41 +26,8 @@ import { ACHIEVEMENTS, type AchievementDef } from '../achievements';
 
 interface ProgressPanelProps {
   lang: Language;
-  uiState: {
-    energy: number;
-    wave: number;
-    plant: {
-      level: number;
-      stage: number;
-      evolutionProgress: number;
-      baseDamage: number;
-      damageMultiplier: number;
-      attackSpeedMultiplier: number;
-    };
-    upgrades: {
-      damageLevel: number;
-      speedLevel: number;
-      clickLevel: number;
-      energyLevel: number;
-      evolutionSpeedLevel: number;
-      grassLevel: number;
-      grassEvolutions: string[];
-    };
-    abilities: {
-      sunBurst: { level: number; evolutions: string[] };
-      rootEntangle: { level: number; evolutions: string[] };
-      poisonCloud: { level: number; evolutions: string[] };
-      solGenerator: { level: number; evolutions: string[] };
-    };
-    resets: number;
-    /** Accumulated game time in seconds, tracked in the game loop */
-    gameTime: number;
-    /**
-     * Persisted set of achievement IDs that have been permanently unlocked.
-     * Sourced from `GameState.unlockedAchievements`.
-     */
-    unlockedAchievements: string[];
-  };
+  /** FIX 7: Uses shared UIState type — single source of truth */
+  uiState: UIState;
   onClose: () => void;
 }
 
@@ -164,6 +133,7 @@ export default function ProgressPanel({ lang, uiState, onClose }: ProgressPanelP
 
   const unlockedCount = unlockedSet.size;
 
+  // FIX 3: Granular primitive deps so useMemo actually caches
   // Sum all upgrade + ability levels using Object.values for DRY
   const totalUpgrades = useMemo(() => {
     const upgradeLevels = Object.values(uiState.upgrades)
@@ -171,7 +141,18 @@ export default function ProgressPanel({ lang, uiState, onClose }: ProgressPanelP
     const abilityLevels = Object.values(uiState.abilities)
       .map(a => a.level);
     return [...upgradeLevels, ...abilityLevels].reduce((sum, v) => sum + v, 0);
-  }, [uiState]);
+  }, [
+    uiState.upgrades.damageLevel,
+    uiState.upgrades.speedLevel,
+    uiState.upgrades.clickLevel,
+    uiState.upgrades.energyLevel,
+    uiState.upgrades.evolutionSpeedLevel,
+    uiState.upgrades.grassLevel,
+    uiState.abilities.sunBurst.level,
+    uiState.abilities.rootEntangle.level,
+    uiState.abilities.poisonCloud.level,
+    uiState.abilities.solGenerator.level,
+  ]);
 
   const totalEvolutions = useMemo(() => {
     return (
@@ -179,7 +160,13 @@ export default function ProgressPanel({ lang, uiState, onClose }: ProgressPanelP
       Object.values(uiState.abilities)
         .reduce((sum, a) => sum + a.evolutions.length, 0)
     );
-  }, [uiState]);
+  }, [
+    uiState.upgrades.grassEvolutions,
+    uiState.abilities.sunBurst.evolutions,
+    uiState.abilities.rootEntangle.evolutions,
+    uiState.abilities.poisonCloud.evolutions,
+    uiState.abilities.solGenerator.evolutions,
+  ]);
 
   /**
    * Progress Score — composite metric (max ~500 before uncapped resets):
@@ -197,7 +184,7 @@ export default function ProgressPanel({ lang, uiState, onClose }: ProgressPanelP
     const upgradeScore = Math.min(50, totalUpgrades / 2);
     
     return Math.floor(waveScore + levelScore + resetScore + achievementScore + upgradeScore);
-  }, [uiState, unlockedCount, totalUpgrades]);
+  }, [uiState.wave, uiState.plant.level, uiState.resets, unlockedCount, totalUpgrades]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-4" onClick={onClose}>

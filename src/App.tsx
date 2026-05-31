@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { GameState, createInitialState, updateGame, drawGame, handleCanvasClick, buyUpgrade, getUpgradeCostTotal, INTERNAL_W, INTERNAL_H, resetGame } from './game';
 import { saveGame, loadGame, exportSave, importSave, resetSave } from './saveSystem';
 import { checkAndUnlockAchievements } from './achievements';
@@ -20,8 +20,56 @@ import { ToastContainer, showToast } from './components/Toast';
 import ConfirmModal from './components/ConfirmModal';
 import ProgressPanel from './components/ProgressPanel';
 
+// FIX 7: Shared UIState type — single source of truth for both mapStateToUI and ProgressPanel
+export interface UIState {
+  energy: number;
+  wave: number;
+  playerHealth: number;
+  plant: {
+    level: number;
+    stage: number;
+    evolutionProgress: number;
+    baseDamage: number;
+    damageMultiplier: number;
+    attackSpeedMultiplier: number;
+  };
+  upgrades: {
+    damageLevel: number;
+    speedLevel: number;
+    clickLevel: number;
+    energyLevel: number;
+    evolutionSpeedLevel: number;
+    grassLevel: number;
+    grassEvolutions: string[];
+  };
+  abilities: {
+    sunBurst: { level: number; evolutions: string[] };
+    rootEntangle: { level: number; evolutions: string[] };
+    poisonCloud: { level: number; evolutions: string[] };
+    solGenerator: { level: number; evolutions: string[] };
+  };
+  resets: number;
+  /** Accumulated game time in seconds, tracked in the game loop */
+  gameTime: number;
+  energyMultiplier: number;
+  modal: {
+    isOpen: boolean;
+    type: 'skillEvolution' | 'skillInfo' | null;
+    skillId: string | null;
+    options: { id: string; name: string; description: string }[];
+  };
+  waveState: {
+    isBoss: boolean;
+  };
+  settings: {
+    lowPerformance: boolean;
+  };
+  /** Persisted achievement IDs — once earned, never removed */
+  unlockedAchievements: string[];
+}
+
 // Optimized UI state mapper
-const mapStateToUI = (state: GameState) => ({
+const mapStateToUI = (state: GameState): UIState => ({
   energy: state.energy,
   wave: state.wave,
   playerHealth: state.playerHealth,
@@ -65,6 +113,18 @@ export default function App() {
   const [confirmModal, setConfirmModal] = useState<{ open: boolean; title: string; message: string; onConfirm: () => void; onCancel: () => void; confirmText?: string; cancelText?: string; destructive?: boolean; lang: Language }>({ open: false, title: '', message: '', onConfirm: () => {}, onCancel: () => {} });
   const [showProgressPanel, setShowProgressPanel] = useState(false);
   const handleCloseProgress = useCallback(() => setShowProgressPanel(false), []);
+
+  // FIX 5: Pre-compute falling leaf positions once to prevent re-render jitter
+  const fallingLeaves = useMemo(() =>
+    Array.from({ length: 20 }, (_, i) => ({
+      key: i,
+      left: Math.random() * 100,
+      top: Math.random() * 20 + 10,
+      duration: Math.random() * 5 + 5,
+      delay: Math.random() * 5,
+      fontSize: Math.random() * 10 + 10,
+    }))
+  , []);
 
   useEffect(() => {
     initGlobalAds();
@@ -114,11 +174,18 @@ export default function App() {
 
     // UI Sync & Auto-save interval
     const uiInterval = setInterval(() => {
-      // Check for new achievement unlocks before syncing UI
-      checkAndUnlockAchievements(gameState.current);
+      // FIX 1: Capture newly unlocked achievements and show toast
+      const newlyUnlocked = checkAndUnlockAchievements(gameState.current);
+      if (newlyUnlocked.length > 0) {
+        showToast(`🏆 ${newlyUnlocked.length} achievement${newlyUnlocked.length > 1 ? 's' : ''} unlocked!`, 'success');
+      }
       setUiState(mapStateToUI(gameState.current));
-      setFps(fpsCounter.fps);
     }, 100);
+
+    // FIX 4: Separate FPS update into 1-second interval to avoid double re-renders
+    const fpsInterval = setInterval(() => {
+      setFps(fpsCounter.fps);
+    }, 1000);
 
     const saveInterval = setInterval(() => {
       saveGame(gameState.current);
@@ -128,6 +195,7 @@ export default function App() {
       window.removeEventListener('resize', resize);
       cancelAnimationFrame(animationFrameId);
       clearInterval(uiInterval);
+      clearInterval(fpsInterval);
       clearInterval(saveInterval);
     };
   }, []);
@@ -517,18 +585,18 @@ export default function App() {
           </div>
 
           <div className="flex-1 relative w-full h-full">
-            {/* Falling Leaves Background Effect (CSS only) */}
+            {/* FIX 5: Falling Leaves Background Effect — positions pre-computed once via useMemo */}
             <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-20">
-              {[...Array(20)].map((_, i) => (
+              {fallingLeaves.map((leaf) => (
                 <div 
-                  key={i} 
+                  key={leaf.key} 
                   className="absolute animate-fall"
                   style={{
-                    left: `${Math.random() * 100}%`,
-                    top: `-${Math.random() * 20 + 10}%`,
-                    animationDuration: `${Math.random() * 5 + 5}s`,
-                    animationDelay: `${Math.random() * 5}s`,
-                    fontSize: `${Math.random() * 10 + 10}px`
+                    left: `${leaf.left}%`,
+                    top: `-${leaf.top}%`,
+                    animationDuration: `${leaf.duration}s`,
+                    animationDelay: `${leaf.delay}s`,
+                    fontSize: `${leaf.fontSize}px`
                   }}
                 >
                   🍃
@@ -536,10 +604,12 @@ export default function App() {
               ))}
             </div>
 
+            {/* FIX 8: Canvas aria-label for accessibility */}
             <canvas
               ref={canvasRef}
               className="absolute inset-0 w-full h-full block"
               onClick={handleCanvasClickEvent}
+              aria-label="Tree Ascension game canvas"
             />
             
             {uiState.waveState.isBoss && (

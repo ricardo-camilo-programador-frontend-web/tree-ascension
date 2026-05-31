@@ -32,6 +32,8 @@ export interface SaveData {
     totalEnergyGenerated: number;
     totalClicks: number;
     totalPlayTime: number;
+    /** Accumulated game time in seconds — FIX 2: persisted so play time survives reload */
+    gameTime: number;
   };
   /** IDs of achievements that have been permanently unlocked */
   unlockedAchievements: string[];
@@ -91,6 +93,7 @@ function mapStateToSave(state: GameState): SaveData {
       totalEnergyGenerated: state.stats.totalEnergyGenerated,
       totalClicks: 0, // TODO: track clicks
       totalPlayTime: 0, // TODO: track play time
+      gameTime: state.timers.gameTime,
     },
     unlockedAchievements: state.unlockedAchievements ?? [],
   };
@@ -165,6 +168,9 @@ function mapSaveToState(save: SaveData): GameState {
   
   // Restore stats
   state.stats.totalEnergyGenerated = save.stats.totalEnergyGenerated;
+  
+  // FIX 2: Restore persisted game time
+  state.timers.gameTime = save.stats.gameTime ?? 0;
   
   // Restore unlocked achievements (fallback to [] for pre-existing saves)
   state.unlockedAchievements = save.unlockedAchievements ?? [];
@@ -241,6 +247,10 @@ export const loadGame = (): GameState | null => {
           const tempState = stateData as GameState;
           // Validate critical fields
           if (typeof tempState.energy === 'number') {
+             // FIX 6: Ensure unlockedAchievements has a default for legacy saves
+             if (!Array.isArray(tempState.unlockedAchievements)) {
+               tempState.unlockedAchievements = [];
+             }
              const saveData = mapStateToSave(tempState);
              saveGame(tempState); // This will save it in new format
              return tempState;
