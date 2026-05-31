@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { GameState, createInitialState, updateGame, drawGame, handleCanvasClick, buyUpgrade, getUpgradeCostTotal, INTERNAL_W, INTERNAL_H, resetGame } from './game';
+import { GameState, createInitialState, updateGame, drawGame, handleCanvasClick, buyUpgrade, getUpgradeCostTotal, resetGame } from './game';
 import { saveGame, loadGame, exportSave, importSave, resetSave } from './saveSystem';
 import { formatNumber } from './utils/number';
 import { fpsCounter } from './utils/performance';
@@ -269,29 +269,29 @@ export default function App() {
     if (!id) return '';
     if (id === 'sunBurst') {
       const dmg = uiState.plant.baseDamage * uiState.plant.damageMultiplier * 5 * Math.pow(1.15, uiState.abilities.sunBurst.level - 1);
-      return `${formatNumber(dmg)} Damage`;
+      return `${formatNumber(dmg)}${t[lang].damageX}`;
     } else if (id === 'rootEntangle') {
-      return '50% Slow for 5s';
+      return `50${t[lang].slowFor}`;
     } else if (id === 'poisonCloud') {
       const dmg = uiState.plant.baseDamage * uiState.plant.damageMultiplier * 0.5 * Math.pow(1.15, uiState.abilities.poisonCloud.level - 1);
-      return `${formatNumber(dmg * 5)} Total Damage`;
+      return `${formatNumber(dmg * 5)}${t[lang].totalDamage}`;
     } else if (id === 'solGenerator') {
-      return `+${uiState.abilities.solGenerator.level} Sun per spawn`;
+      return `+${uiState.abilities.solGenerator.level}${t[lang].sunPerSpawn}`;
     } else if (id === 'grass') {
       const dmg = 5 * Math.pow(1.15, uiState.upgrades.grassLevel);
-      return `${formatNumber(dmg)} DPS`;
+      return `${formatNumber(dmg)}${t[lang].dps}`;
     } else if (id === 'damage') {
       return `x${formatNumber(uiState.plant.damageMultiplier)}`;
     } else if (id === 'speed') {
       return `x${formatNumber(uiState.plant.attackSpeedMultiplier)}`;
     } else if (id === 'click') {
       const dmg = uiState.plant.baseDamage * uiState.plant.damageMultiplier * 2 * Math.pow(1.15, uiState.upgrades.clickLevel - 1);
-      return `${formatNumber(dmg)} Damage`;
+      return `${formatNumber(dmg)}${t[lang].damageX}`;
     } else if (id === 'energy') {
       return `x${formatNumber(uiState.energyMultiplier)}`;
     } else if (id === 'evolutionSpeed') {
       const speed = 5 * Math.pow(1.3, uiState.upgrades.evolutionSpeedLevel - 1);
-      return `${formatNumber(speed)}/s`;
+      return `${formatNumber(speed)}${t[lang].perSecond}`;
     }
     return '';
   };
