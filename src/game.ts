@@ -1,6 +1,41 @@
 import { playShootSound, playHitSound, playDeathSound, playSunSound, playSunBurstSound, playPortalSound } from './audio';
 import { formatNumber } from './utils/number';
 
+let _nextId = 0;
+const nextId = (): string => String(++_nextId);
+/** Sync the ID counter past the highest existing entity ID to prevent collisions after save/load. */
+export const syncNextId = (state: GameState): void => {
+  let maxId = 0;
+  for (const zombie of state.zombies) {
+    const id = parseInt(zombie.id);
+    if (!isNaN(id) && id > maxId) maxId = id;
+  }
+  for (const projectile of state.projectiles) {
+    const id = parseInt(projectile.id);
+    if (!isNaN(id) && id > maxId) maxId = id;
+  }
+  for (const particle of state.particles) {
+    const id = parseInt(particle.id);
+    if (!isNaN(id) && id > maxId) maxId = id;
+  }
+  for (const coin of state.coins) {
+    const id = parseInt(coin.id);
+    if (!isNaN(id) && id > maxId) maxId = id;
+  }
+  for (const sun of state.suns) {
+    const id = parseInt(sun.id);
+    if (!isNaN(id) && id > maxId) maxId = id;
+  }
+  for (const sunBurst of state.sunBursts) {
+    const id = parseInt(sunBurst.id);
+    if (!isNaN(id) && id > maxId) maxId = id;
+  }
+  _nextId = maxId;
+};
+const resetNextId = (): void => {
+  _nextId = 0;
+};
+
 export const INTERNAL_W = 1024;
 export const INTERNAL_H = 576;
 
@@ -94,6 +129,8 @@ export interface SunBurst {
   maxLife: number;
 }
 
+export type UpgradeLevelKey = 'damageLevel' | 'speedLevel' | 'clickLevel' | 'energyLevel' | 'evolutionSpeedLevel' | 'grassLevel';
+
 export interface GameState {
   energy: number;
   wave: number;
@@ -145,6 +182,7 @@ export interface GameState {
     gameTime: number;
     lastGrassTick: number;
     lastSunSpawn: number;
+    nextSunSpawnInterval: number;
   };
 
   waveState: {
@@ -237,6 +275,7 @@ export const createInitialState = (): GameState => ({
     gameTime: 0,
     lastGrassTick: 0,
     lastSunSpawn: 0,
+    nextSunSpawnInterval: 10 + Math.random() * 10,
   },
   waveState: {
     spawned: 0,
@@ -271,6 +310,8 @@ export const createInitialState = (): GameState => ({
   },
   lastTimestamp: Date.now(),
 });
+
+resetNextId();
 
 
 export const calculatePrestigePoints = (totalEnergy: number): number => {
@@ -307,6 +348,7 @@ export const resetGame = (state: GameState): boolean => {
   // ... apply other upgrades
   
   Object.assign(state, newState);
+  resetNextId();
   return true;
 };
 
@@ -360,7 +402,7 @@ const spawnZombie = (state: GameState) => {
   }
 
   state.zombies.push({
-    id: Math.random().toString(),
+    id: nextId(),
     type,
     level: state.wave,
     x: INTERNAL_W + 50,
@@ -375,19 +417,6 @@ const spawnZombie = (state: GameState) => {
     hitTimer: 0,
   });
 };
-
-  // Remove the old formatNumber function
-/*
-export const formatNumber = (num: number): string => {
-  if (num === 0) return '0';
-  if (num >= 1e15) return num.toExponential(2).replace('e+', 'e');
-  if (num >= 1e12) return (num / 1e12).toFixed(2) + 'T';
-  if (num >= 1e9) return (num / 1e9).toFixed(2) + 'B';
-  if (num >= 1e6) return (num / 1e6).toFixed(2) + 'M';
-  if (num >= 1e3) return (num / 1e3).toFixed(2) + 'K';
-  return Math.floor(num).toLocaleString();
-};
-*/
 
 export const getCooldownForLevel = (baseCooldown: number, level: number) => {
   if (baseCooldown === 0) return 0;
@@ -452,7 +481,7 @@ export const applyDamageToZombie = (state: GameState, zombie: Zombie, amount: nu
   
   // Visual feedback
   state.floatingTexts.push({
-    id: Math.random().toString(),
+    id: nextId(),
     text: formatNumber(amount),
     x: zombie.x, 
     y: zombie.y - zombie.size - 10,
@@ -466,7 +495,7 @@ export const applyDamageToZombie = (state: GameState, zombie: Zombie, amount: nu
     // Extra particles for crit
     for (let k = 0; k < 5; k++) {
       state.particles.push({
-        id: Math.random().toString(),
+        id: nextId(),
         x: zombie.x, y: zombie.y,
         vx: (Math.random() - 0.5) * 300,
         vy: (Math.random() - 0.5) * 300,
@@ -485,7 +514,7 @@ export const applyDamageToPlayer = (state: GameState, amount: number) => {
 
   // Visual feedback for player damage
   state.floatingTexts.push({
-    id: Math.random().toString(),
+    id: nextId(),
     text: `-${formatNumber(amount)}`,
     x: 150, // Player position (approx)
     y: INTERNAL_H - 150,
@@ -517,13 +546,17 @@ export const updateGame = (state: GameState, _unused_dt: number) => {
   }
 };
 
+export const getEvolutionSpeed = (evolutionSpeedLevel: number): number => {
+  return 5 * Math.pow(1.5, evolutionSpeedLevel - 1);
+};
+
 const runUpdateStep = (state: GameState, dt: number) => {
   state.timers.gameTime += dt;
 
   // Evolution
   const totalEvolutions = (state.plant.level - 1) * 5 + (state.plant.stage - 1);
   const requiredProgress = 100 * Math.pow(1.2, totalEvolutions);
-  const evolutionSpeed = 5 * Math.pow(1.5, state.upgrades.evolutionSpeedLevel - 1);
+  const evolutionSpeed = getEvolutionSpeed(state.upgrades.evolutionSpeedLevel);
   
   state.plant.evolutionProgress += dt * evolutionSpeed;
 
@@ -554,7 +587,7 @@ const runUpdateStep = (state: GameState, dt: number) => {
     // Level up effect
     for (let k = 0; k < 30; k++) {
       state.particles.push({
-        id: Math.random().toString(),
+        id: nextId(),
         x: 150, y: INTERNAL_H - 100,
         vx: (Math.random() - 0.5) * 400,
         vy: (Math.random() - 0.5) * 400,
@@ -579,7 +612,7 @@ const runUpdateStep = (state: GameState, dt: number) => {
     
     if (state.abilities.sunBurst.evolutions.includes('larger_radius')) radius = 1.5;
 
-    state.sunBursts.push({ id: Math.random().toString(), x: 150, y: INTERNAL_H - 100, life: 0, maxLife: radius });
+    state.sunBursts.push({ id: nextId(), x: 150, y: INTERNAL_H - 100, life: 0, maxLife: radius });
     playSunBurstSound();
 
     state.zombies.forEach(z => {
@@ -594,7 +627,7 @@ const runUpdateStep = (state: GameState, dt: number) => {
       }
       for (let k = 0; k < 5; k++) {
         state.particles.push({
-          id: Math.random().toString(), x: z.x, y: z.y,
+          id: nextId(), x: z.x, y: z.y,
           vx: (Math.random() - 0.5) * 400 * radius, vy: (Math.random() - 0.5) * 400 * radius,
           life: 0, maxLife: 0.8, color: '#fef08a', size: 5,
         });
@@ -616,7 +649,7 @@ const runUpdateStep = (state: GameState, dt: number) => {
       z.slowAmount = slowAmount;
       for (let k = 0; k < 5; k++) {
         state.particles.push({
-          id: Math.random().toString(), x: z.x, y: z.y,
+          id: nextId(), x: z.x, y: z.y,
           vx: (Math.random() - 0.5) * 100, vy: (Math.random() - 0.5) * 100,
           life: 0, maxLife: 0.5, color: '#84cc16', size: 4,
         });
@@ -641,7 +674,7 @@ const runUpdateStep = (state: GameState, dt: number) => {
       z.poisonTicks = ticks;
       for (let k = 0; k < 10; k++) {
         state.particles.push({
-          id: Math.random().toString(), x: z.x, y: z.y,
+          id: nextId(), x: z.x, y: z.y,
           vx: (Math.random() - 0.5) * 150, vy: (Math.random() - 0.5) * 150,
           life: 0, maxLife: 1, color: '#a855f7', size: 6,
         });
@@ -663,8 +696,8 @@ const runUpdateStep = (state: GameState, dt: number) => {
       
       for (let i = state.zombies.length - 1; i >= 0; i--) {
         const z = state.zombies[i];
-      applyDamageToZombie(state, z, grassDamage);
-        
+        applyDamageToZombie(state, z, grassDamage);
+
         if (state.upgrades.grassEvolutions.includes('slow_thorns')) {
            z.slowTimer = Math.max(z.slowTimer || 0, 1);
            z.slowAmount = Math.max(z.slowAmount || 0, 0.2); // Slight slow
@@ -673,7 +706,7 @@ const runUpdateStep = (state: GameState, dt: number) => {
         // Grass spikes emerging effect
         if (Math.random() > 0.3) {
           state.particles.push({
-            id: Math.random().toString(),
+            id: nextId(),
             x: z.x + (Math.random() - 0.5) * z.size, 
             y: INTERNAL_H - 100, // Ground level
             vx: 0, vy: -100 - Math.random() * 50,
@@ -687,9 +720,9 @@ const runUpdateStep = (state: GameState, dt: number) => {
 
   // Sun spawning
   state.timers.lastSunSpawn += dt;
-  const sunSpawnInterval = 10 + Math.random() * 10;
-  if (state.timers.lastSunSpawn >= sunSpawnInterval) {
+  if (state.timers.lastSunSpawn >= state.timers.nextSunSpawnInterval) {
     state.timers.lastSunSpawn = 0;
+    state.timers.nextSunSpawnInterval = 10 + Math.random() * 10;
     const x = 200 + Math.random() * (INTERNAL_W - 400);
     const targetY = 100 + Math.random() * (INTERNAL_H - 300);
     let baseReward = 50 * Math.pow(1.3, state.wave);
@@ -707,7 +740,7 @@ const runUpdateStep = (state: GameState, dt: number) => {
     
     for (let i = 0; i < sunCount; i++) {
       state.suns.push({
-        id: Math.random().toString(),
+        id: nextId(),
         x: x + (Math.random() - 0.5) * 50,
         y: -50 - (Math.random() * 50),
         targetY: targetY + (Math.random() - 0.5) * 50,
@@ -796,7 +829,7 @@ const runUpdateStep = (state: GameState, dt: number) => {
     if (target) {
       playShootSound();
       state.projectiles.push({
-        id: Math.random().toString(),
+        id: nextId(),
         x: 150,
         y: INTERNAL_H - 120,
         speed: 400,
@@ -827,7 +860,7 @@ const runUpdateStep = (state: GameState, dt: number) => {
 
         for (let k = 0; k < 5; k++) {
           state.particles.push({
-            id: Math.random().toString(),
+            id: nextId(),
             x: p.x, y: p.y,
             vx: (Math.random() - 0.5) * 200,
             vy: (Math.random() - 0.5) * 200,
@@ -873,7 +906,7 @@ const runUpdateStep = (state: GameState, dt: number) => {
       if (z.hp < 0) z.hp = 0;
       if (Math.random() < 0.1) { // Visual effect
         state.particles.push({
-          id: Math.random().toString(), x: z.x, y: z.y,
+          id: nextId(), x: z.x, y: z.y,
           vx: (Math.random() - 0.5) * 50, vy: -50 - Math.random() * 50,
           life: 0, maxLife: 0.4, color: '#f97316', size: 3
         });
@@ -921,7 +954,7 @@ const runUpdateStep = (state: GameState, dt: number) => {
       state.zombies.splice(i, 1);
 
       state.floatingTexts.push({
-        id: Math.random().toString(),
+        id: nextId(),
         text: `+${Math.floor(reward)}`,
         x: z.x, y: z.y - z.size - 20,
         life: 0, maxLife: 1,
@@ -947,7 +980,7 @@ const runUpdateStep = (state: GameState, dt: number) => {
 
       for (let k = 0; k < 10; k++) {
         state.particles.push({
-          id: Math.random().toString(),
+          id: nextId(),
           x: 150, y: INTERNAL_H - 100,
           vx: (Math.random() - 0.5) * 300,
           vy: (Math.random() - 0.5) * 300 - 100,
@@ -1030,7 +1063,7 @@ export const handleCanvasClick = (state: GameState, x: number, y: number, canvas
       state.suns.splice(i, 1);
       
       state.floatingTexts.push({
-        id: Math.random().toString(),
+        id: nextId(),
         text: `+${Math.floor(reward)}`,
         x: s.x, y: s.y,
         life: 0, maxLife: 1.5,
@@ -1039,7 +1072,7 @@ export const handleCanvasClick = (state: GameState, x: number, y: number, canvas
 
       for (let k = 0; k < 20; k++) {
         state.particles.push({
-          id: Math.random().toString(),
+          id: nextId(),
           x: s.x, y: s.y,
           vx: (Math.random() - 0.5) * 400,
           vy: (Math.random() - 0.5) * 400,
@@ -1066,7 +1099,7 @@ export const handleCanvasClick = (state: GameState, x: number, y: number, canvas
       // Click impact effect
       for (let k = 0; k < (isCrit ? 15 : 8); k++) {
         state.particles.push({
-          id: Math.random().toString(),
+          id: nextId(),
           x: internalX, y: internalY,
           vx: (Math.random() - 0.5) * (isCrit ? 400 : 250),
           vy: (Math.random() - 0.5) * (isCrit ? 400 : 250),
@@ -1084,7 +1117,7 @@ export const handleCanvasClick = (state: GameState, x: number, y: number, canvas
         const valuePerCoin = reward / numCoins;
         for (let k = 0; k < numCoins; k++) {
           state.coins.push({
-            id: Math.random().toString(),
+            id: nextId(),
             x: z.x + (Math.random() - 0.5) * 20,
             y: z.y - z.size / 2,
             vx: (Math.random() - 0.5) * 200,
@@ -1115,7 +1148,7 @@ export const handleCanvasClick = (state: GameState, x: number, y: number, canvas
     state.energy += reward;
     state.stats.totalEnergyGenerated += reward;
     state.floatingTexts.push({
-      id: Math.random().toString(),
+      id: nextId(),
       text: `+${formatNumber(reward)}`,
       x: internalX, y: internalY,
       life: 0, maxLife: 0.5,
@@ -1177,6 +1210,15 @@ export const getUpgradeCostTotal = (type: string, level: number, state: GameStat
 };
 
 export const buyUpgrade = (state: GameState, type: string, amount: number | 'MAX' = 1) => {
+  const upgradeKeyMap: Record<string, UpgradeLevelKey> = {
+    damage: 'damageLevel',
+    speed: 'speedLevel',
+    click: 'clickLevel',
+    energy: 'energyLevel',
+    evolutionSpeed: 'evolutionSpeedLevel',
+    grass: 'grassLevel',
+  };
+
   let bought = 0;
   
   while (amount === 'MAX' || bought < amount) {
@@ -1184,7 +1226,9 @@ export const buyUpgrade = (state: GameState, type: string, amount: number | 'MAX
     if (['sunBurst', 'rootEntangle', 'poisonCloud', 'solGenerator'].includes(type)) {
       level = state.abilities[type as keyof typeof state.abilities].level;
     } else {
-      level = (state.upgrades as any)[type + 'Level'];
+      const key = upgradeKeyMap[type];
+      if (!key) throw new Error(`Unknown upgrade type: ${type}`);
+      level = state.upgrades[key];
     }
 
     const cost = getUpgradeCost(type, level, state);
@@ -1230,7 +1274,9 @@ export const buyUpgrade = (state: GameState, type: string, amount: number | 'MAX
           }
         }
       } else {
-        (state.upgrades as any)[type + 'Level']++;
+        const key = upgradeKeyMap[type];
+        if (!key) throw new Error(`Unknown upgrade type: ${type}`);
+        state.upgrades[key]++;
         
         if (type === 'grass') {
            const newLevel = state.upgrades.grassLevel;
@@ -1261,6 +1307,12 @@ export const buyUpgrade = (state: GameState, type: string, amount: number | 'MAX
     }
   }
 };
+
+const portalParticleSeeds = Array.from({ length: 15 }, () => ({
+  offset: (Math.random() - 0.5) * 1.5,
+  yOffset: Math.random(),
+  size: 2 + Math.random() * 3,
+}));
 
 export const drawGame = (ctx: CanvasRenderingContext2D, width: number, height: number, state: GameState) => {
   ctx.clearRect(0, 0, width, height);
@@ -1427,11 +1479,12 @@ export const drawGame = (ctx: CanvasRenderingContext2D, width: number, height: n
     
     // Subtle particles inside portal
     ctx.fillStyle = '#d8b4fe';
-    for (let i = 0; i < 15; i++) {
-      const px = (Math.random() - 0.5) * portalWidth * 1.5;
-      const py = (Math.random() - 0.5) * portalHeight * 0.8;
-      const size = Math.random() * 3 + 1;
-      ctx.globalAlpha = Math.random() * 0.5 + 0.5;
+    for (let i = 0; i < portalParticleSeeds.length; i++) {
+      const seed = portalParticleSeeds[i];
+      const px = seed.offset * portalWidth;
+      const py = (seed.yOffset - 0.5) * portalHeight * 0.8;
+      const size = seed.size;
+      ctx.globalAlpha = 0.5 + Math.sin(state.timers.gameTime * 2 + i) * 0.3;
       ctx.beginPath();
       ctx.arc(px, py, size, 0, Math.PI * 2);
       ctx.fill();

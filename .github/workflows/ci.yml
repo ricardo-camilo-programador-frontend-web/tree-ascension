@@ -7,31 +7,113 @@ on:
     branches: [main]
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-
+  validate:
+    name: Validar Linting e Formatacao
+    runs-on: self-hosted
+    timeout-minutes: 10
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup PATH
+        run: echo "/usr/local/bin" >> $GITHUB_PATH
+      - name: Cache npm
+        uses: actions/cache@v3
         with:
-          node-version: '20'
-          cache: 'npm'
+          path: ~/.npm
+          key: npm-${{ hashFiles('package-lock.json') }}
 
-      - name: Install dependencies
+      - name: Instalar dependencias
         run: npm ci
 
-      - name: Type check
+      - name: Executar Lint
         run: npm run lint
 
-      - name: Build
+  build:
+    name: Build do Projeto
+    runs-on: self-hosted
+    timeout-minutes: 15
+    env:
+      GEMINI_API_KEY: ""
+      APP_URL: ""
+      VITE_ADSTERRA_PUBLISHER_ID: ""
+      VITE_ENABLE_ADSTERRA: ""
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PATH
+        run: echo "/usr/local/bin" >> $GITHUB_PATH
+      - name: Cache npm
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: npm-${{ hashFiles('package-lock.json') }}
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Build do projeto
         run: npm run build
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: dist
+          name: build-dist
           path: dist/
           retention-days: 7
+
+  security:
+    name: Auditoria de Seguranca
+    runs-on: self-hosted
+    timeout-minutes: 10
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PATH
+        run: echo "/usr/local/bin" >> $GITHUB_PATH
+      - name: Cache npm
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: npm-${{ hashFiles('package-lock.json') }}
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Auditoria de vulnerabilidades
+        shell: bash
+        run: |
+          set -o pipefail
+          LOG_FILE="$(mktemp)"
+
+          npm audit --audit-level moderate 2>&1 | tee "$LOG_FILE"
+          status=${PIPESTATUS[0]}
+
+          if [ "$status" -eq 0 ]; then
+            exit 0
+          fi
+
+
+          exit "$status"
+
+  sonar:
+    name: Analise SonarQube
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PATH
+        run: echo "/usr/local/bin" >> $GITHUB_PATH
+      - name: Cache npm
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: npm-${{ hashFiles('package-lock.json') }}
+
+      - name: Instalar dependencias
+        run: pnpm install --ignore-scripts
+
+      - name: Run SonarScanner
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: /opt/sonar-scanner/bin/sonar-scanner

@@ -2,7 +2,7 @@ import { GameState, createInitialState, calculateMaxHp } from './game';
 
 const SAVE_KEY = 'plant_clicker_save';
 const BACKUP_KEY = 'plant_clicker_save_backup';
-const SECRET_SALT = 'plant_clicker_secure_salt_v1';
+const INTEGRITY_SALT = 'plant_clicker_secure_salt_v1';
 const CURRENT_VERSION = 1;
 
 export interface SaveData {
@@ -87,8 +87,8 @@ function mapStateToSave(state: GameState): SaveData {
     },
     stats: {
       totalEnergyGenerated: state.stats.totalEnergyGenerated,
-      totalClicks: 0,
-      totalPlayTime: 0,
+      totalClicks: 0, // TODO: track clicks
+      totalPlayTime: 0, // TODO: track play time
     },
   };
 }
@@ -193,7 +193,7 @@ export const saveGame = (state: GameState) => {
   try {
     const saveData = mapStateToSave(state);
     const json = JSON.stringify(saveData);
-    const signature = generateHash(json + SECRET_SALT);
+    const signature = generateHash(json + INTEGRITY_SALT);
     
     const signedSave: SignedSave = {
       data: saveData,
@@ -275,7 +275,7 @@ function parseAndValidateSave(jsonString: string): GameState | null {
     }
     
     // Verify signature
-    const calculatedSignature = generateHash(JSON.stringify(signedSave.data) + SECRET_SALT);
+    const calculatedSignature = generateHash(JSON.stringify(signedSave.data) + INTEGRITY_SALT);
     if (calculatedSignature !== signedSave.signature) {
       throw new Error('Save signature mismatch (corrupted or tampered)');
     }
@@ -291,15 +291,15 @@ function parseAndValidateSave(jsonString: string): GameState | null {
     }
     
     return mapSaveToState(signedSave.data);
-  } catch (e) {
-    throw e;
+  } catch {
+    return null;
   }
 }
 
 export const exportSave = (state: GameState): string => {
   const saveData = mapStateToSave(state);
   const json = JSON.stringify(saveData);
-  const signature = generateHash(json + SECRET_SALT);
+  const signature = generateHash(json + INTEGRITY_SALT);
   const signedSave: SignedSave = { data: saveData, signature };
   return btoa(JSON.stringify(signedSave));
 };
