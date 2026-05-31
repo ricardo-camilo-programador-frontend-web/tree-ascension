@@ -7,7 +7,7 @@ import { getAudioSettings, updateAudioSettings, AudioSettings } from './audio';
 import MoringaInfo from './components/MoringaInfo';
 import { initGlobalAds } from './ads/adsterra';
 import AdsterraAd from './components/AdsterraAd';
-import { Zap, Sword, Clock, MousePointer2, Sparkles, ShieldAlert, FastForward, Leaf, Sun, Wind, Skull, Save, Download, RotateCcw, Globe, X, ShoppingCart, Settings } from 'lucide-react';
+import { Zap, Sword, Clock, MousePointer2, Sparkles, ShieldAlert, FastForward, Leaf, Sun, Wind, Skull, Save, Download, RotateCcw, Globe, X, ShoppingCart, Settings, Trophy } from 'lucide-react';
 import { t, Language, languages } from './i18n';
 import UpgradeButton from './components/UpgradeButton';
 import AbilityButton from './components/AbilityButton';
@@ -17,6 +17,7 @@ import SkillEvolutionModal from './components/SkillEvolutionModal';
 import SkillInfoModal from './components/SkillInfoModal';
 import { ToastContainer, showToast } from './components/Toast';
 import ConfirmModal from './components/ConfirmModal';
+import ProgressPanel from './components/ProgressPanel';
 
 // Optimized UI state mapper
 const mapStateToUI = (state: GameState) => ({
@@ -58,6 +59,9 @@ export default function App() {
   const [copySuccess, setCopySuccess] = useState(false);
   const [audio, setAudio] = useState<AudioSettings>(getAudioSettings());
   const [confirmModal, setConfirmModal] = useState<{ open: boolean; title: string; message: string; onConfirm: () => void; onCancel: () => void; confirmText?: string; cancelText?: string; destructive?: boolean; lang: Language }>({ open: false, title: '', message: '', onConfirm: () => {}, onCancel: () => {} });
+  const [showProgressPanel, setShowProgressPanel] = useState(false);
+  const startTimeRef = useRef(Date.now());
+  const totalPlayTime = (Date.now() - startTimeRef.current) / 1000;
 
   useEffect(() => {
     initGlobalAds();
@@ -412,6 +416,13 @@ export default function App() {
                className="p-1.5 md:p-2 bg-stone-800 rounded hover:bg-stone-700 text-stone-400 hover:text-white transition-colors"
              >
                <Settings className="w-4 h-4 md:w-5 md:h-5" />
+             </button>
+             <button
+               onClick={() => setShowProgressPanel(true)}
+               className="p-1.5 md:p-2 bg-stone-800 rounded hover:bg-stone-700 text-stone-400 hover:text-white transition-colors"
+               title={t[lang].progressBtn || 'Progress'}
+             >
+               <Trophy className="w-4 h-4 md:w-5 md:h-5" />
              </button>
              <Globe className="w-3 h-3 md:w-4 md:h-4 text-stone-400 ml-2" />
              <select 
@@ -837,6 +848,16 @@ export default function App() {
 
       {/* Toast Notifications */}
       <ToastContainer />
+
+      {/* Progress Panel */}
+      {showProgressPanel && (
+        <ProgressPanel
+          lang={lang}
+          uiState={uiState}
+          totalPlayTime={totalPlayTime}
+          onClose={() => setShowProgressPanel(false)}
+        />
+      )}
 
       {/* Hard Reset Confirm Modal */}
       <ConfirmModal

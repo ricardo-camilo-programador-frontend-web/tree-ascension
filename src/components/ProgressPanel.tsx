@@ -4,9 +4,10 @@
  */
 
 import React, { useMemo } from 'react';
-import { Trophy, Star, Target, Clock, Zap, Swords, Leaf, TrendingUp, Award, CheckCircle2, Lock } from 'lucide-react';
+import { Trophy, Star, Target, Clock, Zap, Sword, Leaf, TrendingUp, Award, CheckCircle2, Lock } from 'lucide-react';
 import { formatNumber } from '../utils/number';
-import { Language, t } from '../i18n';
+import type { Language } from '../i18n/types';
+import { t } from '../i18n';
 
 interface ProgressPanelProps {
   lang: Language;
@@ -65,7 +66,7 @@ const achievements: Achievement[] = [
     id: 'wave_10',
     titleKey: 'achievement2Title',
     descriptionKey: 'achievement2Desc',
-    icon: <Swords className="w-5 h-5 text-blue-400" />,
+    icon: <Sword className="w-5 h-5 text-blue-400" />,
     condition: (state) => state.wave >= 10,
   },
   {
@@ -152,7 +153,7 @@ const achievements: Achievement[] = [
     id: 'damage_multiplier_10',
     titleKey: 'achievement14Title',
     descriptionKey: 'achievement14Desc',
-    icon: <Swords className="w-5 h-5 text-red-400" />,
+    icon: <Sword className="w-5 h-5 text-red-400" />,
     condition: (state) => state.plant.damageMultiplier >= 10,
   },
   {
@@ -331,12 +332,12 @@ export default function ProgressPanel({ lang, uiState, totalPlayTime, onClose }:
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <span className={`font-bold ${isUnlocked ? 'text-stone-100' : 'text-stone-500'}`}>
-                            {t[lang][achievement.titleKey as keyof typeof t[Language]] || achievement.id}
+                            {(t[lang] as unknown as Record<string, string>)[achievement.titleKey] || achievement.id}
                           </span>
                           {isUnlocked && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
                         </div>
                         <p className="text-xs text-stone-500 mt-1">
-                          {t[lang][achievement.descriptionKey as keyof typeof t[Language]] || 'Achievement description'}
+                          {(t[lang] as unknown as Record<string, string>)[achievement.descriptionKey] || 'Achievement description'}
                         </p>
                       </div>
                     </div>
