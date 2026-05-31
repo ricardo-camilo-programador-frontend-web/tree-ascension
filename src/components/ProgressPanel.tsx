@@ -3,10 +3,10 @@
  * Displays player progress, achievements, and statistics
  */
 
-import React, { useMemo } from 'react';
-import { Trophy, Star, Target, Clock, Zap, Sword, Leaf, TrendingUp, Award, CheckCircle2, Lock } from 'lucide-react';
+import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
+import { Trophy, Star, Target, Clock, Zap, Sword, Leaf, TrendingUp, Award, CheckCircle2, Lock, X } from 'lucide-react';
 import { formatNumber } from '../utils/number';
-import type { Language } from '../i18n/types';
+import type { Language, TranslationSet } from '../i18n/types';
 import { t } from '../i18n';
 
 interface ProgressPanelProps {
@@ -14,7 +14,6 @@ interface ProgressPanelProps {
   uiState: {
     energy: number;
     wave: number;
-    playerHealth: number;
     plant: {
       level: number;
       stage: number;
@@ -39,9 +38,7 @@ interface ProgressPanelProps {
       solGenerator: { level: number; evolutions: string[] };
     };
     resets: number;
-    energyMultiplier: number;
   };
-  totalPlayTime: number;
   onClose: () => void;
 }
 
@@ -51,7 +48,6 @@ interface Achievement {
   descriptionKey: string;
   icon: React.ReactNode;
   condition: (state: ProgressPanelProps['uiState']) => boolean;
-  reward?: string;
 }
 
 const achievements: Achievement[] = [
@@ -144,10 +140,11 @@ const achievements: Achievement[] = [
     titleKey: 'achievement13Title',
     descriptionKey: 'achievement13Desc',
     icon: <Star className="w-5 h-5 text-pink-400" />,
-    condition: (state) => 
-      state.abilities.sunBurst.level > 0 && 
-      state.abilities.rootEntangle.level > 0 && 
-      state.abilities.poisonCloud.level > 0,
+    condition: (state) =>
+      state.abilities.sunBurst.level > 0 &&
+      state.abilities.rootEntangle.level > 0 &&
+      state.abilities.poisonCloud.level > 0 &&
+      state.abilities.solGenerator.level > 0,
   },
   {
     id: 'damage_multiplier_10',
@@ -178,10 +175,59 @@ function formatPlayTime(seconds: number): string {
   return `${secs}s`;
 }
 
-export default function ProgressPanel({ lang, uiState, totalPlayTime, onClose }: ProgressPanelProps) {
+export default function ProgressPanel({ lang, uiState, onClose }: ProgressPanelProps) {
+  const modalRef = useRef<HTMLDivElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
+
+  // Play time timer — updates every second
+  const [totalPlayTime, setTotalPlayTime] = useState(0);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTotalPlayTime(prev => prev + 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Focus trap + Escape + focus management
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      onClose();
+      return;
+    }
+    if (e.key === 'Tab' && modalRef.current) {
+      const focusable = modalRef.current.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusable.length === 0) return;
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+  }, [onClose]);
+
+  useEffect(() => {
+    previousFocusRef.current = document.activeElement as HTMLElement;
+    modalRef.current?.focus();
+    return () => {
+      previousFocusRef.current?.focus();
+    };
+  }, []);
+
   const unlockedAchievements = useMemo(() => {
     return achievements.filter(a => a.condition(uiState));
   }, [uiState]);
+
+  const unlockedSet = useMemo(() => {
+    return new Set(unlockedAchievements.map(a => a.id));
+  }, [unlockedAchievements]);
 
   const totalUpgrades = useMemo(() => {
     return (
@@ -220,8 +266,14 @@ export default function ProgressPanel({ lang, uiState, totalPlayTime, onClose }:
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-4" onClick={onClose}>
-      <div 
-        className="bg-stone-900 border border-stone-700 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl"
+      <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="progress-panel-title"
+        tabIndex={-1}
+        onKeyDown={handleKeyDown}
+        className="bg-stone-900 border border-stone-700 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl outline-none"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
@@ -229,15 +281,16 @@ export default function ProgressPanel({ lang, uiState, totalPlayTime, onClose }:
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
               <Trophy className="w-8 h-8 text-yellow-400" />
-              <h2 className="text-2xl font-black text-stone-100 uppercase tracking-wider">
+              <h2 id="progress-panel-title" className="text-2xl font-black text-stone-100 uppercase tracking-wider">
                 {t[lang].progressTitle || 'Progress'}
               </h2>
             </div>
-            <button 
+            <button
               onClick={onClose}
+              aria-label={t[lang].close || 'Close'}
               className="p-2 bg-stone-800 hover:bg-stone-700 rounded-lg text-stone-400 hover:text-white transition-colors"
             >
-              ✕
+              <X className="w-5 h-5" />
             </button>
           </div>
           
@@ -315,7 +368,7 @@ export default function ProgressPanel({ lang, uiState, totalPlayTime, onClose }:
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {achievements.map((achievement) => {
-                const isUnlocked = achievement.condition(uiState);
+                const isUnlocked = unlockedSet.has(achievement.id);
                 return (
                   <div 
                     key={achievement.id}
@@ -332,12 +385,12 @@ export default function ProgressPanel({ lang, uiState, totalPlayTime, onClose }:
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <span className={`font-bold ${isUnlocked ? 'text-stone-100' : 'text-stone-500'}`}>
-                            {(t[lang] as unknown as Record<string, string>)[achievement.titleKey] || achievement.id}
+                            {t[lang][achievement.titleKey as keyof TranslationSet] || achievement.id}
                           </span>
                           {isUnlocked && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
                         </div>
                         <p className="text-xs text-stone-500 mt-1">
-                          {(t[lang] as unknown as Record<string, string>)[achievement.descriptionKey] || 'Achievement description'}
+                          {t[lang][achievement.descriptionKey as keyof TranslationSet] || 'Achievement description'}
                         </p>
                       </div>
                     </div>

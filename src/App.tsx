@@ -60,8 +60,6 @@ export default function App() {
   const [audio, setAudio] = useState<AudioSettings>(getAudioSettings());
   const [confirmModal, setConfirmModal] = useState<{ open: boolean; title: string; message: string; onConfirm: () => void; onCancel: () => void; confirmText?: string; cancelText?: string; destructive?: boolean; lang: Language }>({ open: false, title: '', message: '', onConfirm: () => {}, onCancel: () => {} });
   const [showProgressPanel, setShowProgressPanel] = useState(false);
-  const startTimeRef = useRef(Date.now());
-  const totalPlayTime = (Date.now() - startTimeRef.current) / 1000;
 
   useEffect(() => {
     initGlobalAds();
@@ -854,7 +852,6 @@ export default function App() {
         <ProgressPanel
           lang={lang}
           uiState={uiState}
-          totalPlayTime={totalPlayTime}
           onClose={() => setShowProgressPanel(false)}
         />
       )}
