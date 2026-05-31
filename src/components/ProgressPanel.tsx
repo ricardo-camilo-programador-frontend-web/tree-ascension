@@ -4,6 +4,11 @@
  *
  * Play time is derived from `uiState.gameTime` (accumulated in the game loop
  * via `state.timers.gameTime`) so it persists across modal open/close cycles.
+ *
+ * Achievement unlock state is persisted in `uiState.unlockedAchievements`
+ * (sourced from `GameState.unlockedAchievements`). Once an achievement is
+ * unlocked it can NEVER be "un-earned", even if the triggering condition
+ * becomes false later (e.g. spending energy below a threshold).
  */
 
 import React, { useMemo, useEffect, useRef, useCallback } from 'react';
@@ -11,6 +16,11 @@ import { Trophy, Star, Target, Clock, Zap, Sword, Leaf, TrendingUp, Award, Check
 import { formatNumber } from '../utils/number';
 import type { Language, TranslationSet } from '../i18n/types';
 import { t } from '../i18n';
+import { ACHIEVEMENTS, type AchievementDef } from '../achievements';
+
+// ---------------------------------------------------------------------------
+// Props
+// ---------------------------------------------------------------------------
 
 interface ProgressPanelProps {
   lang: Language;
@@ -43,129 +53,41 @@ interface ProgressPanelProps {
     resets: number;
     /** Accumulated game time in seconds, tracked in the game loop */
     gameTime: number;
+    /**
+     * Persisted set of achievement IDs that have been permanently unlocked.
+     * Sourced from `GameState.unlockedAchievements`.
+     */
+    unlockedAchievements: string[];
   };
   onClose: () => void;
 }
 
-interface Achievement {
-  id: string;
-  titleKey: string;
-  descriptionKey: string;
-  icon: React.ReactNode;
-  condition: (state: ProgressPanelProps['uiState']) => boolean;
-}
+// ---------------------------------------------------------------------------
+// Icon map — maps achievement IDs to their Lucide icons for rendering.
+// This is the only part of achievements that belongs in the UI layer.
+// ---------------------------------------------------------------------------
 
-const achievements: Achievement[] = [
-  {
-    id: 'first_wave',
-    titleKey: 'achievement1Title',
-    descriptionKey: 'achievement1Desc',
-    icon: <Target className="w-5 h-5 text-emerald-400" />,
-    condition: (state) => state.wave >= 1,
-  },
-  {
-    id: 'wave_10',
-    titleKey: 'achievement2Title',
-    descriptionKey: 'achievement2Desc',
-    icon: <Sword className="w-5 h-5 text-blue-400" />,
-    condition: (state) => state.wave >= 10,
-  },
-  {
-    id: 'wave_50',
-    titleKey: 'achievement3Title',
-    descriptionKey: 'achievement3Desc',
-    icon: <Trophy className="w-5 h-5 text-yellow-400" />,
-    condition: (state) => state.wave >= 50,
-  },
-  {
-    id: 'wave_100',
-    titleKey: 'achievement4Title',
-    descriptionKey: 'achievement4Desc',
-    icon: <Star className="w-5 h-5 text-purple-400" />,
-    condition: (state) => state.wave >= 100,
-  },
-  {
-    id: 'plant_level_10',
-    titleKey: 'achievement5Title',
-    descriptionKey: 'achievement5Desc',
-    icon: <Leaf className="w-5 h-5 text-green-400" />,
-    condition: (state) => state.plant.level >= 10,
-  },
-  {
-    id: 'plant_level_50',
-    titleKey: 'achievement6Title',
-    descriptionKey: 'achievement6Desc',
-    icon: <Leaf className="w-5 h-5 text-emerald-400" />,
-    condition: (state) => state.plant.level >= 50,
-  },
-  {
-    id: 'plant_level_100',
-    titleKey: 'achievement7Title',
-    descriptionKey: 'achievement7Desc',
-    icon: <Leaf className="w-5 h-5 text-cyan-400" />,
-    condition: (state) => state.plant.level >= 100,
-  },
-  {
-    id: 'first_reset',
-    titleKey: 'achievement8Title',
-    descriptionKey: 'achievement8Desc',
-    icon: <TrendingUp className="w-5 h-5 text-orange-400" />,
-    condition: (state) => state.resets >= 1,
-  },
-  {
-    id: 'reset_5',
-    titleKey: 'achievement9Title',
-    descriptionKey: 'achievement9Desc',
-    icon: <TrendingUp className="w-5 h-5 text-red-400" />,
-    condition: (state) => state.resets >= 5,
-  },
-  {
-    id: 'reset_10',
-    titleKey: 'achievement10Title',
-    descriptionKey: 'achievement10Desc',
-    icon: <Award className="w-5 h-5 text-amber-400" />,
-    condition: (state) => state.resets >= 10,
-  },
-  {
-    id: 'energy_1m',
-    titleKey: 'achievement11Title',
-    descriptionKey: 'achievement11Desc',
-    icon: <Zap className="w-5 h-5 text-yellow-400" />,
-    condition: (state) => state.energy >= 1000000,
-  },
-  {
-    id: 'energy_1b',
-    titleKey: 'achievement12Title',
-    descriptionKey: 'achievement12Desc',
-    icon: <Zap className="w-5 h-5 text-yellow-400" />,
-    condition: (state) => state.energy >= 1000000000,
-  },
-  {
-    id: 'all_abilities',
-    titleKey: 'achievement13Title',
-    descriptionKey: 'achievement13Desc',
-    icon: <Star className="w-5 h-5 text-pink-400" />,
-    condition: (state) =>
-      state.abilities.sunBurst.level > 0 &&
-      state.abilities.rootEntangle.level > 0 &&
-      state.abilities.poisonCloud.level > 0 &&
-      state.abilities.solGenerator.level > 0,
-  },
-  {
-    id: 'damage_multiplier_10',
-    titleKey: 'achievement14Title',
-    descriptionKey: 'achievement14Desc',
-    icon: <Sword className="w-5 h-5 text-red-400" />,
-    condition: (state) => state.plant.damageMultiplier >= 10,
-  },
-  {
-    id: 'speed_multiplier_5',
-    titleKey: 'achievement15Title',
-    descriptionKey: 'achievement15Desc',
-    icon: <Clock className="w-5 h-5 text-blue-400" />,
-    condition: (state) => state.plant.attackSpeedMultiplier >= 5,
-  },
-];
+const achievementIcons: Record<string, React.ReactNode> = {
+  first_wave: <Target className="w-5 h-5 text-emerald-400" />,
+  wave_10: <Sword className="w-5 h-5 text-blue-400" />,
+  wave_50: <Trophy className="w-5 h-5 text-yellow-400" />,
+  wave_100: <Star className="w-5 h-5 text-purple-400" />,
+  plant_level_10: <Leaf className="w-5 h-5 text-green-400" />,
+  plant_level_50: <Leaf className="w-5 h-5 text-emerald-400" />,
+  plant_level_100: <Leaf className="w-5 h-5 text-cyan-400" />,
+  first_reset: <TrendingUp className="w-5 h-5 text-orange-400" />,
+  reset_5: <TrendingUp className="w-5 h-5 text-red-400" />,
+  reset_10: <Award className="w-5 h-5 text-amber-400" />,
+  energy_1m: <Zap className="w-5 h-5 text-yellow-400" />,
+  energy_1b: <Zap className="w-5 h-5 text-yellow-400" />,
+  all_abilities: <Star className="w-5 h-5 text-pink-400" />,
+  damage_multiplier_10: <Sword className="w-5 h-5 text-red-400" />,
+  speed_multiplier_5: <Clock className="w-5 h-5 text-blue-400" />,
+};
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
 function formatPlayTime(seconds: number): string {
   const hours = Math.floor(seconds / 3600);
@@ -179,6 +101,10 @@ function formatPlayTime(seconds: number): string {
   }
   return `${secs}s`;
 }
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
 
 export default function ProgressPanel({ lang, uiState, onClose }: ProgressPanelProps) {
   const modalRef = useRef<HTMLDivElement>(null);
@@ -231,13 +157,12 @@ export default function ProgressPanel({ lang, uiState, onClose }: ProgressPanelP
     }
   }, [onClose]);
 
-  const unlockedAchievements = useMemo(() => {
-    return achievements.filter(a => a.condition(uiState));
-  }, [uiState]);
-
+  // Use the PERSISTED unlock set — not recomputed from conditions
   const unlockedSet = useMemo(() => {
-    return new Set(unlockedAchievements.map(a => a.id));
-  }, [unlockedAchievements]);
+    return new Set(uiState.unlockedAchievements);
+  }, [uiState.unlockedAchievements]);
+
+  const unlockedCount = unlockedSet.size;
 
   // Sum all upgrade + ability levels using Object.values for DRY
   const totalUpgrades = useMemo(() => {
@@ -268,11 +193,11 @@ export default function ProgressPanel({ lang, uiState, onClose }: ProgressPanelP
     const waveScore = Math.min(100, uiState.wave);
     const levelScore = Math.min(100, uiState.plant.level);
     const resetScore = uiState.resets * 10;
-    const achievementScore = unlockedAchievements.length * 5;
+    const achievementScore = unlockedCount * 5;
     const upgradeScore = Math.min(50, totalUpgrades / 2);
     
     return Math.floor(waveScore + levelScore + resetScore + achievementScore + upgradeScore);
-  }, [uiState, unlockedAchievements, totalUpgrades]);
+  }, [uiState, unlockedCount, totalUpgrades]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-4" onClick={onClose}>
@@ -375,10 +300,10 @@ export default function ProgressPanel({ lang, uiState, onClose }: ProgressPanelP
           <section>
             <h3 className="text-lg font-bold text-stone-300 mb-4 flex items-center gap-2">
               <Trophy className="w-5 h-5 text-yellow-400" />
-              {t[lang].achievements || 'Achievements'} ({unlockedAchievements.length}/{achievements.length})
+              {t[lang].achievements || 'Achievements'} ({unlockedCount}/{ACHIEVEMENTS.length})
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {achievements.map((achievement) => {
+              {ACHIEVEMENTS.map((achievement) => {
                 const isUnlocked = unlockedSet.has(achievement.id);
                 return (
                   <div 
@@ -391,7 +316,9 @@ export default function ProgressPanel({ lang, uiState, onClose }: ProgressPanelP
                   >
                     <div className="flex items-start gap-3">
                       <div className={`p-2 rounded-lg ${isUnlocked ? 'bg-yellow-500/20' : 'bg-stone-800'}`}>
-                        {isUnlocked ? achievement.icon : <Lock className="w-5 h-5 text-stone-600" />}
+                        {isUnlocked
+                          ? (achievementIcons[achievement.id] ?? <Star className="w-5 h-5 text-stone-400" />)
+                          : <Lock className="w-5 h-5 text-stone-600" />}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
@@ -455,16 +382,16 @@ export default function ProgressPanel({ lang, uiState, onClose }: ProgressPanelP
                   <p className="text-xs text-stone-500">{t[lang].milestoneFirstResetDesc || 'Reach Wave 50 or Plant Level 50 to unlock'}</p>
                 </div>
               )}
-              {unlockedAchievements.length < achievements.length && (
+              {unlockedCount < ACHIEVEMENTS.length && (
                 <div className="bg-stone-950 rounded-xl p-4 border border-stone-800">
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-stone-300 font-bold">{t[lang].milestoneAllAchievements || 'Complete All Achievements'}</span>
-                    <span className="text-stone-500 text-sm">{unlockedAchievements.length}/{achievements.length}</span>
+                    <span className="text-stone-500 text-sm">{unlockedCount}/{ACHIEVEMENTS.length}</span>
                   </div>
                   <div className="h-2 bg-stone-900 rounded-full overflow-hidden">
                     <div 
                       className="h-full bg-yellow-500 transition-all"
-                      style={{ width: `${(unlockedAchievements.length / achievements.length) * 100}%` }}
+                      style={{ width: `${(unlockedCount / ACHIEVEMENTS.length) * 100}%` }}
                     />
                   </div>
                 </div>

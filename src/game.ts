@@ -219,6 +219,8 @@ export interface GameState {
   settings: {
     lowPerformance: boolean;
   };
+  /** Persisted set of achievement IDs that have been unlocked. Once earned, never removed. */
+  unlockedAchievements: string[];
   lastTimestamp: number;
 }
 
@@ -308,6 +310,7 @@ export const createInitialState = (): GameState => ({
   settings: {
     lowPerformance: false,
   },
+  unlockedAchievements: [],
   lastTimestamp: Date.now(),
 });
 
@@ -332,11 +335,12 @@ export const resetGame = (state: GameState): boolean => {
   // Reset game state
   const newState = createInitialState();
   
-  // Keep prestige, stats, and resets
+  // Keep prestige, stats, resets, and achievements
   newState.prestige = state.prestige;
   newState.stats = state.stats;
   newState.resets = currentResets;
   newState.energy = startingEnergy;
+  newState.unlockedAchievements = state.unlockedAchievements;
   
   // Recalculate Max HP based on reset level (which is 1)
   newState.maxPlayerHealth = calculateMaxHp(newState.plant.level);

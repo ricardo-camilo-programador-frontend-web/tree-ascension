@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { GameState, createInitialState, updateGame, drawGame, handleCanvasClick, buyUpgrade, getUpgradeCostTotal, INTERNAL_W, INTERNAL_H, resetGame } from './game';
 import { saveGame, loadGame, exportSave, importSave, resetSave } from './saveSystem';
+import { checkAndUnlockAchievements } from './achievements';
 import { formatNumber } from './utils/number';
 import { fpsCounter } from './utils/performance';
 import { getAudioSettings, updateAudioSettings, AudioSettings } from './audio';
@@ -42,6 +43,8 @@ const mapStateToUI = (state: GameState) => ({
     isBoss: state.waveState.isBoss,
   },
   settings: state.settings,
+  /** Persisted achievement IDs — once earned, never removed */
+  unlockedAchievements: state.unlockedAchievements,
 });
 
 export default function App() {
@@ -111,6 +114,8 @@ export default function App() {
 
     // UI Sync & Auto-save interval
     const uiInterval = setInterval(() => {
+      // Check for new achievement unlocks before syncing UI
+      checkAndUnlockAchievements(gameState.current);
       setUiState(mapStateToUI(gameState.current));
       setFps(fpsCounter.fps);
     }, 100);

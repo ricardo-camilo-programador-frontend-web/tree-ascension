@@ -33,6 +33,8 @@ export interface SaveData {
     totalClicks: number;
     totalPlayTime: number;
   };
+  /** IDs of achievements that have been permanently unlocked */
+  unlockedAchievements: string[];
 }
 
 export interface SignedSave {
@@ -90,6 +92,7 @@ function mapStateToSave(state: GameState): SaveData {
       totalClicks: 0, // TODO: track clicks
       totalPlayTime: 0, // TODO: track play time
     },
+    unlockedAchievements: state.unlockedAchievements ?? [],
   };
 }
 
@@ -162,6 +165,9 @@ function mapSaveToState(save: SaveData): GameState {
   
   // Restore stats
   state.stats.totalEnergyGenerated = save.stats.totalEnergyGenerated;
+  
+  // Restore unlocked achievements (fallback to [] for pre-existing saves)
+  state.unlockedAchievements = save.unlockedAchievements ?? [];
   
   // Recalculate derived stats
   state.plant.damageMultiplier = Math.pow(1.15, state.upgrades.damageLevel - 1);
