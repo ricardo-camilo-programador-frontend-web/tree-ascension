@@ -182,6 +182,7 @@ export interface GameState {
     gameTime: number;
     lastGrassTick: number;
     lastSunSpawn: number;
+    nextSunSpawnInterval: number;
   };
 
   waveState: {
@@ -274,6 +275,7 @@ export const createInitialState = (): GameState => ({
     gameTime: 0,
     lastGrassTick: 0,
     lastSunSpawn: 0,
+    nextSunSpawnInterval: 10 + Math.random() * 10,
   },
   waveState: {
     spawned: 0,
@@ -544,13 +546,17 @@ export const updateGame = (state: GameState, _unused_dt: number) => {
   }
 };
 
+export const getEvolutionSpeed = (evolutionSpeedLevel: number): number => {
+  return 5 * Math.pow(1.5, evolutionSpeedLevel - 1);
+};
+
 const runUpdateStep = (state: GameState, dt: number) => {
   state.timers.gameTime += dt;
 
   // Evolution
   const totalEvolutions = (state.plant.level - 1) * 5 + (state.plant.stage - 1);
   const requiredProgress = 100 * Math.pow(1.2, totalEvolutions);
-  const evolutionSpeed = 5 * Math.pow(1.5, state.upgrades.evolutionSpeedLevel - 1);
+  const evolutionSpeed = getEvolutionSpeed(state.upgrades.evolutionSpeedLevel);
   
   state.plant.evolutionProgress += dt * evolutionSpeed;
 
@@ -690,8 +696,8 @@ const runUpdateStep = (state: GameState, dt: number) => {
       
       for (let i = state.zombies.length - 1; i >= 0; i--) {
         const z = state.zombies[i];
-      applyDamageToZombie(state, z, grassDamage);
-        
+        applyDamageToZombie(state, z, grassDamage);
+
         if (state.upgrades.grassEvolutions.includes('slow_thorns')) {
            z.slowTimer = Math.max(z.slowTimer || 0, 1);
            z.slowAmount = Math.max(z.slowAmount || 0, 0.2); // Slight slow
@@ -714,9 +720,9 @@ const runUpdateStep = (state: GameState, dt: number) => {
 
   // Sun spawning
   state.timers.lastSunSpawn += dt;
-  const sunSpawnInterval = 10 + Math.random() * 10;
-  if (state.timers.lastSunSpawn >= sunSpawnInterval) {
+  if (state.timers.lastSunSpawn >= state.timers.nextSunSpawnInterval) {
     state.timers.lastSunSpawn = 0;
+    state.timers.nextSunSpawnInterval = 10 + Math.random() * 10;
     const x = 200 + Math.random() * (INTERNAL_W - 400);
     const targetY = 100 + Math.random() * (INTERNAL_H - 300);
     let baseReward = 50 * Math.pow(1.3, state.wave);
@@ -1204,6 +1210,15 @@ export const getUpgradeCostTotal = (type: string, level: number, state: GameStat
 };
 
 export const buyUpgrade = (state: GameState, type: string, amount: number | 'MAX' = 1) => {
+  const upgradeKeyMap: Record<string, UpgradeLevelKey> = {
+    damage: 'damageLevel',
+    speed: 'speedLevel',
+    click: 'clickLevel',
+    energy: 'energyLevel',
+    evolutionSpeed: 'evolutionSpeedLevel',
+    grass: 'grassLevel',
+  };
+
   let bought = 0;
   
   while (amount === 'MAX' || bought < amount) {
@@ -1211,7 +1226,9 @@ export const buyUpgrade = (state: GameState, type: string, amount: number | 'MAX
     if (['sunBurst', 'rootEntangle', 'poisonCloud', 'solGenerator'].includes(type)) {
       level = state.abilities[type as keyof typeof state.abilities].level;
     } else {
-      level = (state.upgrades as any)[type + 'Level'];
+      const key = upgradeKeyMap[type];
+      if (!key) throw new Error(`Unknown upgrade type: ${type}`);
+      level = state.upgrades[key];
     }
 
     const cost = getUpgradeCost(type, level, state);
@@ -1257,7 +1274,9 @@ export const buyUpgrade = (state: GameState, type: string, amount: number | 'MAX
           }
         }
       } else {
-        (state.upgrades as any)[type + 'Level']++;
+        const key = upgradeKeyMap[type];
+        if (!key) throw new Error(`Unknown upgrade type: ${type}`);
+        state.upgrades[key]++;
         
         if (type === 'grass') {
            const newLevel = state.upgrades.grassLevel;
@@ -1288,6 +1307,12 @@ export const buyUpgrade = (state: GameState, type: string, amount: number | 'MAX
     }
   }
 };
+
+const portalParticleSeeds = Array.from({ length: 15 }, () => ({
+  offset: (Math.random() - 0.5) * 1.5,
+  yOffset: Math.random(),
+  size: 2 + Math.random() * 3,
+}));
 
 export const drawGame = (ctx: CanvasRenderingContext2D, width: number, height: number, state: GameState) => {
   ctx.clearRect(0, 0, width, height);
@@ -1454,11 +1479,12 @@ export const drawGame = (ctx: CanvasRenderingContext2D, width: number, height: n
     
     // Subtle particles inside portal
     ctx.fillStyle = '#d8b4fe';
-    for (let i = 0; i < 15; i++) {
-      const px = (Math.random() - 0.5) * portalWidth * 1.5;
-      const py = (Math.random() - 0.5) * portalHeight * 0.8;
-      const size = Math.random() * 3 + 1;
-      ctx.globalAlpha = Math.random() * 0.5 + 0.5;
+    for (let i = 0; i < portalParticleSeeds.length; i++) {
+      const seed = portalParticleSeeds[i];
+      const px = seed.offset * portalWidth;
+      const py = (seed.yOffset - 0.5) * portalHeight * 0.8;
+      const size = seed.size;
+      ctx.globalAlpha = 0.5 + Math.sin(state.timers.gameTime * 2 + i) * 0.3;
       ctx.beginPath();
       ctx.arc(px, py, size, 0, Math.PI * 2);
       ctx.fill();

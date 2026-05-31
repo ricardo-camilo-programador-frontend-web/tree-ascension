@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { GameState, UpgradeLevelKey, syncNextId, createInitialState, updateGame, drawGame, handleCanvasClick, buyUpgrade, getUpgradeCostTotal, INTERNAL_W, INTERNAL_H, resetGame } from './game';
+import { GameState, createInitialState, updateGame, drawGame, handleCanvasClick, buyUpgrade, getUpgradeCostTotal, INTERNAL_W, INTERNAL_H, resetGame } from './game';
 import { saveGame, loadGame, exportSave, importSave, resetSave } from './saveSystem';
 import { formatNumber } from './utils/number';
 import { fpsCounter } from './utils/performance';
@@ -61,7 +61,6 @@ export default function App() {
     const loadedState = loadGame();
     if (loadedState) {
       gameState.current = loadedState;
-      syncNextId(loadedState);
       setUiState(mapStateToUI(loadedState));
     }
 
@@ -138,7 +137,6 @@ export default function App() {
 
   const handleManualSave = () => {
     saveGame(gameState.current);
-    alert(t[lang].saveGame + ' OK!');
   };
 
   const handleExport = () => {
@@ -167,7 +165,6 @@ export default function App() {
       setImportString('');
       setImportError('');
       setShowSettingsModal(false);
-      alert('Save imported successfully!');
     } catch (e) {
       setImportError('Invalid save string');
     }
@@ -191,7 +188,6 @@ export default function App() {
     if (success) {
       setShowResetModal(false);
       setUiState(mapStateToUI(gameState.current));
-      alert(`Prestige Activated! +${formatNumber(gameState.current.energy)} Starting Energy`);
     }
   };
 
@@ -252,7 +248,7 @@ export default function App() {
     } else if (id === 'grass') {
       return uiState.upgrades.grassLevel;
     } else if (['damage', 'speed', 'click', 'energy', 'evolutionSpeed'].includes(id)) {
-      return uiState.upgrades[id + 'Level' as UpgradeLevelKey];
+      return (uiState.upgrades as any)[id + 'Level'];
     }
     return 0;
   };
@@ -282,7 +278,7 @@ export default function App() {
     } else if (id === 'energy') {
       return `x${formatNumber(uiState.energyMultiplier)}`;
     } else if (id === 'evolutionSpeed') {
-      const speed = 5 * Math.pow(1.3, uiState.upgrades.evolutionSpeedLevel - 1);
+      const speed = 5 * Math.pow(1.5, uiState.upgrades.evolutionSpeedLevel - 1);
       return `${formatNumber(speed)}/s`;
     }
     return '';
@@ -394,6 +390,7 @@ export default function App() {
              <select 
                value={lang} 
                onChange={handleLangChange}
+               aria-label="Language"
                className="bg-stone-800 text-stone-200 text-[10px] md:text-xs rounded p-1 border border-stone-700 outline-none max-w-[60px] md:max-w-none"
              >
                {languages.map(l => <option key={l.code} value={l.code}>{l.name}</option>)}
@@ -440,6 +437,7 @@ export default function App() {
                       step="0.01" 
                       value={audio.volume}
                       onChange={handleVolumeChange}
+                      aria-label="Volume"
                       className="w-full h-2 bg-stone-800 rounded-lg appearance-none cursor-pointer accent-emerald-500"
                     />
                   </div>
@@ -686,16 +684,16 @@ export default function App() {
           <div className="flex-1 relative w-full h-full">
             {/* Falling Leaves Background Effect (CSS only) */}
             <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-20">
-              {[...Array(20)].map((_, i) => (
+              {Array.from({ length: 20 }, (_, i) => (
                 <div 
                   key={i} 
                   className="absolute animate-fall"
                   style={{
-                    left: `${Math.random() * 100}%`,
-                    top: `-${Math.random() * 20 + 10}%`,
-                    animationDuration: `${Math.random() * 5 + 5}s`,
-                    animationDelay: `${Math.random() * 5}s`,
-                    fontSize: `${Math.random() * 10 + 10}px`
+                    left: `${((i * 37 + 13) % 100)}%`,
+                    top: `-${((i * 7 + 3) % 20 + 10)}%`,
+                    animationDuration: `${((i * 3 + 5) % 5 + 5)}s`,
+                    animationDelay: `${((i * 2 + 1) % 5)}s`,
+                    fontSize: `${((i * 4 + 3) % 10 + 10)}px`
                   }}
                 >
                   🍃
@@ -707,6 +705,8 @@ export default function App() {
               ref={canvasRef}
               className="absolute inset-0 w-full h-full block"
               onClick={handleCanvasClickEvent}
+              role="img"
+              aria-label="Game canvas"
             />
             
             {uiState.waveState.isBoss && (
@@ -1021,7 +1021,21 @@ export default function App() {
   );
 }
 
-function UpgradeButton({ icon, title, level, cost, count, canAfford, onClick, onIconClick, formatNumber, lang, colorClass }: any) {
+interface UpgradeButtonProps {
+  icon: React.ReactNode;
+  title: string;
+  level: number;
+  cost: number;
+  count: number;
+  canAfford: boolean;
+  onClick: (amount: number) => void;
+  onIconClick?: () => void;
+  formatNumber: (n: number) => string;
+  lang: string;
+  colorClass: string;
+}
+
+function UpgradeButton({ icon, title, level, cost, count, canAfford, onClick, onIconClick, formatNumber, lang, colorClass }: UpgradeButtonProps) {
   return (
     <div
       className={`relative w-full flex flex-col p-4 rounded-2xl border transition-all duration-200 text-left overflow-hidden group ${
@@ -1078,7 +1092,21 @@ function UpgradeButton({ icon, title, level, cost, count, canAfford, onClick, on
   );
 }
 
-function AbilityButton({ icon, title, ability, cost, count, canAfford, onClick, onIconClick, formatNumber, lang, colorClass }: any) {
+interface AbilityButtonProps {
+  icon: React.ReactNode;
+  title: string;
+  ability: { level: number; maxCooldown: number; cooldown: number; evolutions: string[] };
+  cost: number;
+  count: number;
+  canAfford: boolean;
+  onClick: (amount: number) => void;
+  onIconClick?: () => void;
+  formatNumber: (n: number) => string;
+  lang: string;
+  colorClass: string;
+}
+
+function AbilityButton({ icon, title, ability, cost, count, canAfford, onClick, onIconClick, formatNumber, lang, colorClass }: AbilityButtonProps) {
   const isUnlocked = ability.level > 0;
   const cooldownPercent = isUnlocked ? Math.max(0, (ability.cooldown / ability.maxCooldown) * 100) : 0;
 
