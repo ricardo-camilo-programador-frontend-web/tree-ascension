@@ -1040,6 +1040,7 @@ export default function App() {
         confirmText="Wipe Save"
         cancelText="Cancel"
         destructive
+        lang={lang}
       />
     </div>
   );
