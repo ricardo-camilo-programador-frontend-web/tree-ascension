@@ -128,6 +128,14 @@ export type TranslationSet = {
   volume: string;
   wipeAllProgress: string;
   wipeSave: string;
+  cancel: string;
+  confirm: string;
+  closeModal: string;
+  hardResetMessage: string;
+  saveSuccess: string;
+  saveImported: string;
+  invalidSaveString: string;
+  prestigeActivated: string;
   moringa: MoringaTranslations;
 };
 
