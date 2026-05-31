@@ -1,40 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Info, Globe, Zap, HeartPulse, Utensils, Coffee, AlertTriangle, Sparkles, Leaf, Droplets, FlaskConical, ShieldCheck } from 'lucide-react';
-import { t, Language, languages } from '../i18n';
+import { t, Language } from '../i18n';
 
-const useLang = (): Language => {
-  const [lang, setLang] = useState<Language>(() => {
-    const saved = localStorage.getItem('idleTD_lang') as Language;
-    if (saved && languages.some(l => l.code === saved)) return saved;
-    return 'en';
-  });
-
-  useEffect(() => {
-    const onStorage = () => {
-      const saved = localStorage.getItem('idleTD_lang') as Language;
-      if (saved && languages.some(l => l.code === saved)) setLang(saved);
-    };
-    window.addEventListener('storage', onStorage);
-
-    // Also poll localStorage for changes within the same tab
-    const interval = setInterval(() => {
-      const saved = localStorage.getItem('idleTD_lang') as Language;
-      if (saved && saved !== lang && languages.some(l => l.code === saved)) {
-        setLang(saved);
-      }
-    }, 500);
-
-    return () => {
-      window.removeEventListener('storage', onStorage);
-      clearInterval(interval);
-    };
-  }, [lang]);
-
-  return lang;
-};
-
-const MoringaInfo: React.FC = () => {
-  const lang = useLang();
+const MoringaInfo: React.FC<{ lang: Language }> = ({ lang }) => {
   const m = t[lang].moringa;
 
   return (
@@ -61,7 +29,7 @@ const MoringaInfo: React.FC = () => {
               {m.introText2}
             </p>
           </div>
-          <div className="bg-emerald-100 rounded-3xl p-8 flex items-center justify-center">
+          <div className="relative bg-emerald-100 rounded-3xl p-8 flex items-center justify-center">
             <Leaf className="w-32 h-32 text-emerald-600 opacity-20 absolute" />
             <div className="relative z-10 text-center">
               <span className="text-5xl block mb-2">🌿</span>

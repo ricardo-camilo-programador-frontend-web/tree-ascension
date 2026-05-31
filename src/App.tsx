@@ -1025,7 +1025,7 @@ export default function App() {
       </div>
 
       {/* Moringa Info Section */}
-      <MoringaInfo />
+      <MoringaInfo lang={lang} />
 
       {/* Toast Notifications */}
       <ToastContainer />
