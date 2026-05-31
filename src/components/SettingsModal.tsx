@@ -1,7 +1,7 @@
 import React from 'react';
 import { Save, Download, Skull, Upload, Copy, Check, Monitor, Volume2, VolumeX, X } from 'lucide-react';
+import { t, Language } from '../i18n';
 import { AudioSettings } from '../audio';
-import { t } from '../i18n';
 
 export interface SettingsModalProps {
  audio: AudioSettings;
@@ -20,7 +20,7 @@ export interface SettingsModalProps {
  importError: string;
  onHardReset: () => void;
  onClose: () => void;
- lang: string;
+ lang: Language;
 }
 
 export default function SettingsModal({

@@ -1,11 +1,11 @@
 import { formatNumber } from '../utils/number';
-import { t } from '../i18n';
+import { t, Language } from '../i18n';
 
 export interface ResetModalProps {
  resets: number;
  onCancel: () => void;
  onConfirm: () => void;
- lang: string;
+ lang: Language;
 }
 
 export default function ResetModal({ resets, onCancel, onConfirm, lang }: ResetModalProps) {
