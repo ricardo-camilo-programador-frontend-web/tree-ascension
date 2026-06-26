@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { GameState, createInitialState, updateGame, drawGame, handleCanvasClick, buyUpgrade, getUpgradeCostTotal, INTERNAL_W, INTERNAL_H, resetGame } from './game';
+import { GameState, createInitialState, updateGame, drawGame, handleCanvasClick, buyUpgrade, getUpgradeCostTotal, INTERNAL_W, INTERNAL_H, resetGame, getEvolutionSpeed } from './game';
+import { SAVE_INTERVAL, UI_SYNC_INTERVAL } from './config/constants';
 import { saveGame, loadGame, exportSave, importSave, resetSave } from './saveSystem';
 import { formatNumber } from './utils/number';
-import { fpsCounter } from './utils/performance';
+import { fpsCounter, isPageHidden } from './utils/performance';
 import { getAudioSettings, updateAudioSettings, AudioSettings } from './audio';
 import MoringaInfo from './components/MoringaInfo';
 import { initGlobalAds } from './ads/adsterra';
@@ -41,6 +42,8 @@ const mapStateToUI = (state: GameState) => ({
     isBoss: state.waveState.isBoss,
   },
   settings: state.settings,
+  playTime: state.timers.gameTime,
+  waveCompleted: state.waveCompleted,
 });
 
 export default function App() {
@@ -60,6 +63,8 @@ export default function App() {
   const [audio, setAudio] = useState<AudioSettings>(getAudioSettings());
   const [confirmModal, setConfirmModal] = useState<{ open: boolean; title: string; message: string; onConfirm: () => void; onCancel: () => void; confirmText?: string; cancelText?: string; destructive?: boolean; lang: Language }>({ open: false, title: '', message: '', onConfirm: () => {}, onCancel: () => {} });
   const [showProgressPanel, setShowProgressPanel] = useState(false);
+  const langRef = useRef(lang);
+  langRef.current = lang;
 
   useEffect(() => {
     initGlobalAds();
@@ -111,14 +116,49 @@ export default function App() {
     const uiInterval = setInterval(() => {
       setUiState(mapStateToUI(gameState.current));
       setFps(fpsCounter.fps);
-    }, 100);
+
+      // Wave completion notification
+      if (gameState.current.waveCompleted) {
+        const currentLang = langRef.current;
+        showToast(`${t[currentLang].wave} ${gameState.current.lastCompletedWave} ${t[currentLang].waveComplete || 'Complete!'}`, 'success');
+        gameState.current.waveCompleted = false;
+      }
+    }, UI_SYNC_INTERVAL);
 
     const saveInterval = setInterval(() => {
+      // H3 fix: skip autosave when page is hidden (rAF is paused, state is stale)
+      if (isPageHidden()) return;
       saveGame(gameState.current);
-    }, 10000); // Save every 10 seconds
+    }, SAVE_INTERVAL); // Save every SAVE_INTERVAL ms
+
+    // Keyboard shortcuts
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
+      if (e.key === 'Escape') {
+        setShowSettingsModal(false);
+        setShowResetModal(false);
+        setShowProgressPanel(false);
+        setIsShopOpen(false);
+        setConfirmModal(prev => ({ ...prev, open: false }));
+        const state = gameState.current;
+        state.modal.isOpen = false;
+        state.modal.type = null;
+        state.modal.skillId = null;
+        state.modal.options = [];
+        setUiState(mapStateToUI(state));
+      } else if (e.key === 's' || e.key === 'S') {
+        e.preventDefault();
+        saveGame(gameState.current);
+        showToast(t[langRef.current].saveSuccess, 'success');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
 
     return () => {
       window.removeEventListener('resize', resize);
+      window.removeEventListener('keydown', handleKeyDown);
       cancelAnimationFrame(animationFrameId);
       clearInterval(uiInterval);
       clearInterval(saveInterval);
@@ -277,7 +317,8 @@ export default function App() {
     } else if (id === 'grass') {
       return uiState.upgrades.grassLevel;
     } else if (['damage', 'speed', 'click', 'energy', 'evolutionSpeed'].includes(id)) {
-      return (uiState.upgrades as any)[id + 'Level'];
+      const key = `${id}Level` as keyof typeof uiState.upgrades;
+      return uiState.upgrades[key];
     }
     return 0;
   };
@@ -307,7 +348,7 @@ export default function App() {
     } else if (id === 'energy') {
       return `x${formatNumber(uiState.energyMultiplier)}`;
     } else if (id === 'evolutionSpeed') {
-      const speed = 5 * Math.pow(1.3, uiState.upgrades.evolutionSpeedLevel - 1);
+      const speed = getEvolutionSpeed(uiState.upgrades.evolutionSpeedLevel);
       return `${formatNumber(speed)}/s`;
     }
     return '';

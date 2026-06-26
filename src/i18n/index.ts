@@ -1,5 +1,5 @@
 import type { Language, Translations } from './types';
-export type { Language, Translations, TranslationSet, MoringaTranslations } from './types';
+export type { Language, Translations, TranslationSet, MoringaTranslations, EvolutionId } from './types';
 
 export const languages: { code: Language; name: string }[] = [
   { code: 'en', name: 'English' },

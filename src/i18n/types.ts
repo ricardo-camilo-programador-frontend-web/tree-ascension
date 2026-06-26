@@ -65,6 +65,13 @@ export type MoringaTranslations = {
   footer: string;
 };
 
+export type EvolutionId = 
+  | 'larger_radius' | 'double_burst' | 'lingering_damage'
+  | 'longer_duration' | 'stronger_slow' | 'damage_over_time'
+  | 'wider_cloud' | 'faster_ticks' | 'contagious'
+  | 'extra_value' | 'faster_fall' | 'auto_collect'
+  | 'poison_grass' | 'slow_thorns';
+
 export type TranslationSet = {
   title: string;
   energy: string;
@@ -185,6 +192,9 @@ export type TranslationSet = {
   achievement14Desc: string;
   achievement15Title: string;
   achievement15Desc: string;
+  evolutionNames: Record<EvolutionId, string>;
+  evolutionDescriptions: Record<EvolutionId, string>;
+  waveComplete: string;
   moringa: MoringaTranslations;
 };
 

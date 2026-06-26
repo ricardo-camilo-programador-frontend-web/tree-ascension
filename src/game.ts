@@ -3,41 +3,13 @@ import { formatNumber } from './utils/number';
 
 let _nextId = 0;
 const nextId = (): string => String(++_nextId);
-/** Sync the ID counter past the highest existing entity ID to prevent collisions after save/load. */
-export const syncNextId = (state: GameState): void => {
-  let maxId = 0;
-  for (const zombie of state.zombies) {
-    const id = parseInt(zombie.id);
-    if (!isNaN(id) && id > maxId) maxId = id;
-  }
-  for (const projectile of state.projectiles) {
-    const id = parseInt(projectile.id);
-    if (!isNaN(id) && id > maxId) maxId = id;
-  }
-  for (const particle of state.particles) {
-    const id = parseInt(particle.id);
-    if (!isNaN(id) && id > maxId) maxId = id;
-  }
-  for (const coin of state.coins) {
-    const id = parseInt(coin.id);
-    if (!isNaN(id) && id > maxId) maxId = id;
-  }
-  for (const sun of state.suns) {
-    const id = parseInt(sun.id);
-    if (!isNaN(id) && id > maxId) maxId = id;
-  }
-  for (const sunBurst of state.sunBursts) {
-    const id = parseInt(sunBurst.id);
-    if (!isNaN(id) && id > maxId) maxId = id;
-  }
-  _nextId = maxId;
-};
 const resetNextId = (): void => {
   _nextId = 0;
 };
 
-export const INTERNAL_W = 1024;
-export const INTERNAL_H = 576;
+export { INTERNAL_W, INTERNAL_H } from './config/constants';
+import { INTERNAL_W, INTERNAL_H, GROUND_HEIGHT, GROUND_Y, PLANT_X, PLANT_Y, SUB_STEP_SIZE, MAX_DT, MAX_ATTACK_SPEED, HEAL_KILL_THRESHOLD, MAX_PARTICLES, MAX_PARTICLES_LOW_PERF, MAX_COINS } from './config/constants';
+import { drawGame as renderGame } from './rendering/draw-game';
 
 export type ZombieType = 'basic' | 'fast' | 'tank' | 'shield' | 'mutant' | 'boss';
 
@@ -149,6 +121,7 @@ export interface GameState {
     totalEnergyGenerated: number;
     enemiesKilled: number;
     wavesCompleted: number;
+    totalClicks: number;
   };
   plant: {
     level: number;
@@ -219,6 +192,8 @@ export interface GameState {
   settings: {
     lowPerformance: boolean;
   };
+  lastCompletedWave: number;
+  waveCompleted: boolean;
   lastTimestamp: number;
 }
 
@@ -243,6 +218,7 @@ export const createInitialState = (): GameState => ({
     totalEnergyGenerated: 0,
     enemiesKilled: 0,
     wavesCompleted: 0,
+    totalClicks: 0,
   },
   plant: {
     level: 1,
@@ -308,6 +284,8 @@ export const createInitialState = (): GameState => ({
   settings: {
     lowPerformance: false,
   },
+  lastCompletedWave: 0,
+  waveCompleted: false,
   lastTimestamp: Date.now(),
 });
 
@@ -406,7 +384,7 @@ const spawnZombie = (state: GameState) => {
     type,
     level: state.wave,
     x: INTERNAL_W + 50,
-    y: INTERNAL_H - 100,
+    y: GROUND_Y,
     hp, maxHp: hp,
     speed,
     damage: isBoss ? 50 : 10,
@@ -442,6 +420,47 @@ export const calculateClickDamage = (state: GameState, isCrit: boolean): number 
   const plantMultiplier = calculatePlantDamage(state) * 0.5;
   const totalDamage = (baseClickDamage * levelMultiplier) + plantMultiplier;
   return isCrit ? totalDamage * 2 : totalDamage;
+};
+
+export const handleZombieKill = (state: GameState, zombie: Zombie, index: number) => {
+  playDeathSound();
+  const reward = zombie.reward * state.energyMultiplier;
+  // Note: totalEnergyGenerated is tracked at coin expiry to avoid double-counting
+  state.waveState.killed++;
+  state.enemiesKilledForHeal++;
+  state.stats.enemiesKilled++;
+
+  // Poison Cloud: Plague evolution
+  if (state.abilities.poisonCloud.evolutions.includes('contagious')) {
+    state.zombies.forEach(other => {
+      const dx = other.x - zombie.x;
+      const dy = other.y - zombie.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < GROUND_HEIGHT * 1.5 && other.id !== zombie.id) {
+        other.poisonTimer = 3;
+        other.poisonDamage = (zombie.poisonDamage || 0) * 0.5;
+        other.poisonTicks = 3;
+      }
+    });
+  }
+
+  // Heal 1 HP per HEAL_KILL_THRESHOLD kills
+  if (state.enemiesKilledForHeal >= HEAL_KILL_THRESHOLD) {
+    state.enemiesKilledForHeal = 0;
+    state.playerHealth = Math.min(state.maxPlayerHealth, state.playerHealth + 1);
+  }
+
+  state.zombies.splice(index, 1);
+
+  state.floatingTexts.push({
+    id: nextId(),
+    text: `+${Math.floor(reward)}`,
+    x: zombie.x, y: zombie.y - zombie.size - 20,
+    life: 0, maxLife: 1,
+    color: '#fbbf24',
+  });
+
+  return reward;
 };
 
 export const calculateSkillDamage = (state: GameState, skillId: string): number => {
@@ -516,7 +535,7 @@ export const applyDamageToPlayer = (state: GameState, amount: number) => {
   state.floatingTexts.push({
     id: nextId(),
     text: `-${formatNumber(amount)}`,
-    x: 150, // Player position (approx)
+    x: PLANT_X, // Player position
     y: INTERNAL_H - 150,
     life: 0,
     maxLife: 1.0,
@@ -532,13 +551,12 @@ export const updateGame = (state: GameState, _unused_dt: number) => {
 
   if (state.modal.isOpen) return;
 
-  const maxDt = 3600; 
-  let effectiveDt = Math.min(realDt, maxDt);
+  let effectiveDt = Math.min(realDt, MAX_DT);
 
   // If dt is very small (e.g. < 1ms), skip to avoid precision issues
   if (effectiveDt < 0.001) return;
 
-  const subStepSize = 0.05; // 50ms chunks for better stability
+  const subStepSize = SUB_STEP_SIZE; // 50ms chunks for better stability
   while (effectiveDt > 0) {
     const step = Math.min(effectiveDt, subStepSize);
     runUpdateStep(state, step);
@@ -588,7 +606,7 @@ const runUpdateStep = (state: GameState, dt: number) => {
     for (let k = 0; k < 30; k++) {
       state.particles.push({
         id: nextId(),
-        x: 150, y: INTERNAL_H - 100,
+        x: PLANT_X, y: GROUND_Y,
         vx: (Math.random() - 0.5) * 400,
         vy: (Math.random() - 0.5) * 400,
         life: 0, maxLife: 1,
@@ -612,7 +630,7 @@ const runUpdateStep = (state: GameState, dt: number) => {
     
     if (state.abilities.sunBurst.evolutions.includes('larger_radius')) radius = 1.5;
 
-    state.sunBursts.push({ id: nextId(), x: 150, y: INTERNAL_H - 100, life: 0, maxLife: radius });
+    state.sunBursts.push({ id: nextId(), x: PLANT_X, y: GROUND_Y, life: 0, maxLife: radius });
     playSunBurstSound();
 
     state.zombies.forEach(z => {
@@ -708,7 +726,7 @@ const runUpdateStep = (state: GameState, dt: number) => {
           state.particles.push({
             id: nextId(),
             x: z.x + (Math.random() - 0.5) * z.size, 
-            y: INTERNAL_H - 100, // Ground level
+            y: GROUND_Y, // Ground level
             vx: 0, vy: -100 - Math.random() * 50,
             life: 0, maxLife: 0.4,
             color: state.upgrades.grassEvolutions.includes('poison_grass') ? '#a855f7' : '#4ade80', size: 4,
@@ -759,8 +777,8 @@ const runUpdateStep = (state: GameState, dt: number) => {
     
     // Magnetic Field evolution
     if (state.abilities.solGenerator.evolutions.includes('auto_collect')) {
-      const dx = 150 - s.x;
-      const dy = (INTERNAL_H - 100) - s.y;
+      const dx = PLANT_X - s.x;
+      const dy = GROUND_Y - s.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
       if (dist < 300) {
         const moveSpeed = 400 * dt;
@@ -796,8 +814,8 @@ const runUpdateStep = (state: GameState, dt: number) => {
     c.y += c.vy * dt;
     c.vy += 800 * dt; // Gravity
     
-    if (c.y > INTERNAL_H - 100) {
-      c.y = INTERNAL_H - 100;
+    if (c.y > GROUND_Y) {
+      c.y = GROUND_Y;
       c.vy *= -0.5; // Bounce
       c.vx *= 0.8; // Friction
     }
@@ -809,11 +827,22 @@ const runUpdateStep = (state: GameState, dt: number) => {
     }
   }
 
+  // Cap coins to prevent visual/perf clutter (MOA-W3)
+  if (state.coins.length > MAX_COINS) {
+    // Merge overflow coins into the oldest ones (energy is granted on expiry)
+    while (state.coins.length > MAX_COINS) {
+      const oldest = state.coins[0];
+      state.energy += oldest.value;
+      state.stats.totalEnergyGenerated += oldest.value;
+      state.coins.shift();
+    }
+  }
+
   // Plant shooting
   // Attack Speed softcap: if > 10 attacks/second, apply reduction
   let actualAttackSpeed = state.plant.baseAttackSpeed * state.plant.attackSpeedMultiplier;
-  if (actualAttackSpeed > 10) {
-    actualAttackSpeed = 10 + Math.sqrt(actualAttackSpeed - 10);
+  if (actualAttackSpeed > MAX_ATTACK_SPEED) {
+    actualAttackSpeed = MAX_ATTACK_SPEED + Math.sqrt(actualAttackSpeed - MAX_ATTACK_SPEED);
   }
   const shotInterval = 1 / actualAttackSpeed;
   state.timers.lastShot += dt;
@@ -830,8 +859,8 @@ const runUpdateStep = (state: GameState, dt: number) => {
       playShootSound();
       state.projectiles.push({
         id: nextId(),
-        x: 150,
-        y: INTERNAL_H - 120,
+        x: PLANT_X,
+        y: PLANT_Y,
         speed: 400,
         damage: calculatePlantDamage(state),
         size: state.plant.projectileSize,
@@ -924,42 +953,23 @@ const runUpdateStep = (state: GameState, dt: number) => {
     }
 
     if (z.hp <= 0) {
-      playDeathSound();
-      const reward = z.reward * state.energyMultiplier;
-      state.energy += reward;
-      state.stats.totalEnergyGenerated += reward;
-      state.waveState.killed++;
-      state.enemiesKilledForHeal++;
+      const reward = handleZombieKill(state, z, i);
       
-      // Poison Cloud: Plague evolution
-      if (state.abilities.poisonCloud.evolutions.includes('contagious')) {
-        state.zombies.forEach(other => {
-          const dx = other.x - z.x;
-          const dy = other.y - z.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < 150 && other.id !== z.id) {
-            other.poisonTimer = 3;
-            other.poisonDamage = (z.poisonDamage || 0) * 0.5;
-            other.poisonTicks = 3;
-          }
+      // Spawn coins for auto-attack kills (energy is collected via coins, not directly)
+      const numCoins = Math.min(10, Math.max(3, Math.floor(reward / 10)));
+      const valuePerCoin = reward / numCoins;
+      for (let k = 0; k < numCoins; k++) {
+        state.coins.push({
+          id: nextId(),
+          x: z.x + (Math.random() - 0.5) * 20,
+          y: z.y - z.size / 2,
+          vx: (Math.random() - 0.5) * 200,
+          vy: -100 - Math.random() * 100,
+          life: 0,
+          maxLife: 0.5 + Math.random() * 0.5,
+          value: valuePerCoin
         });
       }
-
-      // Heal 1 HP per 1000 kills
-      if (state.enemiesKilledForHeal >= 1000) {
-        state.enemiesKilledForHeal = 0;
-        state.playerHealth = Math.min(state.maxPlayerHealth, state.playerHealth + 1);
-      }
-
-      state.zombies.splice(i, 1);
-
-      state.floatingTexts.push({
-        id: nextId(),
-        text: `+${Math.floor(reward)}`,
-        x: z.x, y: z.y - z.size - 20,
-        life: 0, maxLife: 1,
-        color: '#fbbf24',
-      });
       continue;
     }
 
@@ -970,18 +980,20 @@ const runUpdateStep = (state: GameState, dt: number) => {
 
     z.x -= currentSpeed * dt;
 
-    if (z.x <= 180) {
+    if (z.x <= PLANT_X + GROUND_HEIGHT * 0.3) {
       // Player takes damage based on wave
       const damage = Math.max(1, Math.floor(state.wave * 0.5));
       applyDamageToPlayer(state, damage);
       
       state.zombies.splice(i, 1);
+      // M5 fix: breach counts toward wave resolution (so wave can still complete)
+      // but handleZombieKill is NOT called — no energy reward, no stat increment
       state.waveState.killed++;
 
       for (let k = 0; k < 10; k++) {
         state.particles.push({
           id: nextId(),
-          x: 150, y: INTERNAL_H - 100,
+          x: PLANT_X, y: GROUND_Y,
           vx: (Math.random() - 0.5) * 300,
           vy: (Math.random() - 0.5) * 300 - 100,
           life: 0, maxLife: 0.5,
@@ -1007,7 +1019,10 @@ const runUpdateStep = (state: GameState, dt: number) => {
 
   // Wave progression
   if (state.waveState.killed >= state.waveState.totalToSpawn) {
+    state.lastCompletedWave = state.wave; // Capture completed wave BEFORE incrementing (C4 fix)
     state.wave++;
+    state.waveCompleted = true;
+    state.stats.wavesCompleted++; // C3 fix: increment stat
     resetWave(state);
   }
 
@@ -1019,7 +1034,7 @@ const runUpdateStep = (state: GameState, dt: number) => {
   }
 
   // Update particles
-  const maxParticles = state.settings.lowPerformance ? 50 : 200;
+  const maxParticles = state.settings.lowPerformance ? MAX_PARTICLES_LOW_PERF : MAX_PARTICLES;
   for (let i = state.particles.length - 1; i >= 0; i--) {
     const p = state.particles[i];
     p.life += dt;
@@ -1042,6 +1057,7 @@ const runUpdateStep = (state: GameState, dt: number) => {
 };
 
 export const handleCanvasClick = (state: GameState, x: number, y: number, canvasW: number, canvasH: number) => {
+  state.stats.totalClicks++;
   const scale = Math.min(canvasW / INTERNAL_W, canvasH / INTERNAL_H);
   const offsetX = (canvasW - INTERNAL_W * scale) / 2;
   const offsetY = (canvasH - INTERNAL_H * scale) / 2;
@@ -1109,9 +1125,8 @@ export const handleCanvasClick = (state: GameState, x: number, y: number, canvas
       }
 
       if (z.hp <= 0) {
-        playDeathSound();
-        const reward = z.reward * state.energyMultiplier;
-        
+        const reward = handleZombieKill(state, z, i);
+          
         // Spawn coins
         const numCoins = Math.min(10, Math.max(3, Math.floor(reward / 10)));
         const valuePerCoin = reward / numCoins;
@@ -1127,17 +1142,7 @@ export const handleCanvasClick = (state: GameState, x: number, y: number, canvas
             value: valuePerCoin
           });
         }
-
-        state.waveState.killed++;
-        state.enemiesKilledForHeal++;
-        
-        // Heal 1 HP per 1000 kills
-        if (state.enemiesKilledForHeal >= 1000) {
-          state.enemiesKilledForHeal = 0;
-          state.playerHealth = Math.min(state.maxPlayerHealth, state.playerHealth + 1);
-        }
-
-        state.zombies.splice(i, 1);
+        break;
       }
       break;
     }
@@ -1308,535 +1313,6 @@ export const buyUpgrade = (state: GameState, type: string, amount: number | 'MAX
   }
 };
 
-const portalParticleSeeds = Array.from({ length: 15 }, () => ({
-  offset: (Math.random() - 0.5) * 1.5,
-  yOffset: Math.random(),
-  size: 2 + Math.random() * 3,
-}));
-
-export const drawGame = (ctx: CanvasRenderingContext2D, width: number, height: number, state: GameState) => {
-  ctx.clearRect(0, 0, width, height);
-  ctx.save();
-  const scale = Math.min(width / INTERNAL_W, height / INTERNAL_H);
-  const offsetX = (width - INTERNAL_W * scale) / 2;
-  const offsetY = (height - INTERNAL_H * scale) / 2;
-  ctx.translate(offsetX, offsetY);
-  ctx.scale(scale, scale);
-
-  // Background
-  const bgGradient = ctx.createLinearGradient(0, 0, 0, INTERNAL_H);
-  bgGradient.addColorStop(0, '#0c0a09');
-  bgGradient.addColorStop(1, '#1c1917');
-  ctx.fillStyle = bgGradient;
-  ctx.fillRect(0, 0, INTERNAL_W, INTERNAL_H);
-
-  // Subtle stars/particles in background
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-  for (let i = 0; i < 50; i++) {
-    const x = (Math.sin(i * 123.45) * 0.5 + 0.5) * INTERNAL_W;
-    const y = (Math.cos(i * 678.90) * 0.5 + 0.5) * (INTERNAL_H - 100);
-    const size = (Math.sin(state.timers.gameTime + i) * 0.5 + 0.5) * 2;
-    ctx.beginPath();
-    ctx.arc(x, y, size, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  // Ground
-  let groundColor = '#171717';
-  if (state.upgrades.grassLevel > 0) {
-    groundColor = state.upgrades.grassEvolutions.includes('poison_grass') ? '#2e1065' : '#064e3b';
-  }
-  ctx.fillStyle = groundColor;
-  ctx.fillRect(0, INTERNAL_H - 100, INTERNAL_W, 100);
-  
-  // Ground texture/grid
-  const grassColor = state.upgrades.grassEvolutions.includes('poison_grass') ? '168, 85, 247' : '34, 197, 94';
-  ctx.strokeStyle = `rgba(${grassColor}, 0.05)`;
-  ctx.lineWidth = 1;
-  for (let i = 0; i < INTERNAL_W; i += 50) {
-    ctx.beginPath();
-    ctx.moveTo(i, INTERNAL_H - 100);
-    ctx.lineTo(i, INTERNAL_H);
-    ctx.stroke();
-  }
-  for (let i = INTERNAL_H - 100; i < INTERNAL_H; i += 25) {
-    ctx.beginPath();
-    ctx.moveTo(0, i);
-    ctx.lineTo(INTERNAL_W, i);
-    ctx.stroke();
-  }
-
-  // Path
-  ctx.fillStyle = '#292524';
-  ctx.fillRect(0, INTERNAL_H - 120, INTERNAL_W, 40);
-
-  // Draw Plant
-  drawPlant(ctx, state);
-
-  // Draw Zombies
-  for (const z of state.zombies) {
-    drawZombie(ctx, z, state.timers.gameTime);
-  }
-
-  // Draw Suns
-  for (const s of state.suns) {
-    ctx.save();
-    ctx.translate(s.x, s.y);
-    ctx.rotate(state.timers.gameTime);
-    
-    let scale = 1;
-    let alpha = 1;
-    if (s.life > 5) {
-      const fadeProgress = (s.life - 5) / (s.maxLife - 5); // 0 to 1
-      alpha = 1 - fadeProgress;
-      scale = 1 - fadeProgress * 0.5;
-      
-      // Blink effect
-      if (Math.sin(s.life * 20) > 0) {
-        alpha *= 0.5;
-      }
-    }
-    
-    ctx.scale(scale, scale);
-    ctx.globalAlpha = alpha;
-    
-    // Outer glow
-    ctx.shadowColor = '#fbbf24';
-    ctx.shadowBlur = 20;
-    ctx.fillStyle = '#fbbf24';
-    ctx.beginPath();
-    ctx.arc(0, 0, s.size, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // Inner core
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = '#fef08a';
-    ctx.beginPath();
-    ctx.arc(0, 0, s.size * 0.7, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // Rays
-    ctx.strokeStyle = '#fbbf24';
-    ctx.lineWidth = 4;
-    for (let i = 0; i < 8; i++) {
-      ctx.rotate(Math.PI / 4);
-      ctx.beginPath();
-      ctx.moveTo(s.size * 0.8, 0);
-      ctx.lineTo(s.size * 1.2, 0);
-      ctx.stroke();
-    }
-    
-    ctx.restore();
-  }
-
-  // Draw SunBursts
-  for (const sb of state.sunBursts) {
-    ctx.save();
-    ctx.translate(sb.x, sb.y);
-    
-    const progress = sb.life / sb.maxLife;
-    const radius = 50 + progress * 300;
-    const alpha = 1 - progress;
-    
-    ctx.globalAlpha = alpha;
-    
-    const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, radius);
-    gradient.addColorStop(0, 'rgba(254, 240, 138, 1)'); // #fef08a
-    gradient.addColorStop(0.5, 'rgba(250, 204, 21, 0.8)'); // #facc15
-    gradient.addColorStop(1, 'rgba(234, 179, 8, 0)'); // #eab308
-    
-    ctx.fillStyle = gradient;
-    ctx.beginPath();
-    ctx.arc(0, 0, radius, 0, Math.PI * 2);
-    ctx.fill();
-    
-    ctx.restore();
-  }
-
-  // Draw Portal
-  if (state.waveState.spawned < state.waveState.totalToSpawn) {
-    ctx.save();
-    // Portal spans full height of play area (approx 10% width)
-    const portalWidth = INTERNAL_W * 0.1;
-    const portalHeight = INTERNAL_H;
-    ctx.translate(INTERNAL_W - portalWidth / 2, INTERNAL_H / 2);
-    
-    // Portal glow
-    ctx.shadowColor = '#a855f7';
-    ctx.shadowBlur = 50;
-    
-    // Portal body
-    const gradient = ctx.createRadialGradient(0, 0, 10, 0, 0, portalHeight / 2);
-    gradient.addColorStop(0, '#000000');
-    gradient.addColorStop(0.3, '#581c87');
-    gradient.addColorStop(0.7, '#7e22ce');
-    gradient.addColorStop(1, 'transparent');
-    
-    ctx.fillStyle = gradient;
-    ctx.beginPath();
-    ctx.ellipse(0, 0, portalWidth, portalHeight / 1.5, 0, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // Subtle particles inside portal
-    ctx.fillStyle = '#d8b4fe';
-    for (let i = 0; i < portalParticleSeeds.length; i++) {
-      const seed = portalParticleSeeds[i];
-      const px = seed.offset * portalWidth;
-      const py = (seed.yOffset - 0.5) * portalHeight * 0.8;
-      const size = seed.size;
-      ctx.globalAlpha = 0.5 + Math.sin(state.timers.gameTime * 2 + i) * 0.3;
-      ctx.beginPath();
-      ctx.arc(px, py, size, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    ctx.restore();
-  }
-
-  // Draw Coins
-  for (const c of state.coins) {
-    ctx.fillStyle = '#eab308'; // Yellow
-    ctx.strokeStyle = '#ca8a04';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.arc(c.x, c.y, 6, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-    ctx.fillStyle = '#ca8a04';
-    ctx.font = '8px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('$', c.x, c.y);
-  }
-
-  // Draw Projectiles
-  for (const p of state.projectiles) {
-    ctx.fillStyle = p.color;
-    ctx.shadowColor = p.color;
-    ctx.shadowBlur = 10;
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.shadowBlur = 0;
-  }
-
-  // Draw Particles
-  for (const p of state.particles) {
-    ctx.fillStyle = p.color;
-    ctx.globalAlpha = 1 - (p.life / p.maxLife);
-    ctx.beginPath();
-    if (state.settings.lowPerformance) {
-      ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
-    } else {
-      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-      ctx.fill();
-    }
-  }
-  ctx.globalAlpha = 1;
-
-  // Draw Floating Texts
-  ctx.font = 'bold 20px monospace';
-  ctx.textAlign = 'center';
-  for (const ft of state.floatingTexts) {
-    ctx.globalAlpha = 1 - (ft.life / ft.maxLife);
-    
-    if (!state.settings.lowPerformance) {
-      ctx.shadowColor = 'black';
-      ctx.shadowBlur = 4;
-      ctx.lineWidth = 3;
-      ctx.strokeStyle = 'black';
-      ctx.strokeText(ft.text, ft.x, ft.y);
-      ctx.shadowBlur = 0;
-    }
-    
-    ctx.fillStyle = ft.color;
-    ctx.fillText(ft.text, ft.x, ft.y);
-  }
-  ctx.globalAlpha = 1;
-
-  ctx.restore();
-};
-
-function drawPlant(ctx: CanvasRenderingContext2D, state: GameState) {
-  const { level, stage, hp, maxHp, evolutionProgress } = state.plant;
-  const x = 150;
-  const y = INTERNAL_H - 100;
-  const time = state.timers.gameTime;
-  const breathe = Math.sin(time * 4) * (2 + stage * 0.5);
-
-  ctx.save();
-  ctx.translate(x, y);
-
-  // Shadow
-  ctx.fillStyle = 'rgba(0,0,0,0.5)';
-  ctx.beginPath();
-  ctx.ellipse(0, 10, 40 + stage * 5, 10, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  const tier = Math.ceil(level / 4);
-  // Subtle and gradual size increase based on level, capped at 1.5x
-  const levelScale = Math.min(1.5, 1 + (level - 1) * 0.02);
-  const sizeMultiplier = levelScale * (1 + (stage - 1) * 0.1);
-
-  ctx.scale(sizeMultiplier, sizeMultiplier);
-
-  if (tier === 1) {
-    // Sprout
-    ctx.fillStyle = '#4ade80';
-    ctx.strokeStyle = '#14532d';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.ellipse(0, -20 - breathe, 25, 35, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-
-    ctx.fillStyle = '#22c55e';
-    ctx.beginPath();
-    ctx.ellipse(-20, -30 - breathe, 15, 8, -Math.PI / 4, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-
-    ctx.fillStyle = '#064e3b';
-    ctx.beginPath();
-    ctx.arc(-8, -25 - breathe, 4, 0, Math.PI * 2);
-    ctx.arc(12, -25 - breathe, 4, 0, Math.PI * 2);
-    ctx.fill();
-  } else if (tier === 2) {
-    // Flower
-    ctx.fillStyle = '#16a34a';
-    ctx.strokeStyle = '#14532d';
-    ctx.lineWidth = 3;
-    ctx.fillRect(-10, -40, 20, 40);
-    ctx.strokeRect(-10, -40, 20, 40);
-
-    ctx.fillStyle = '#ec4899';
-    for (let i = 0; i < 6; i++) {
-      ctx.save();
-      ctx.translate(0, -40 - breathe);
-      ctx.rotate((i * Math.PI * 2) / 6 + time);
-      ctx.beginPath();
-      ctx.ellipse(20, 0, 15, 8, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-      ctx.restore();
-    }
-
-    ctx.fillStyle = '#facc15';
-    ctx.beginPath();
-    ctx.arc(0, -40 - breathe, 15, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-  } else if (tier === 3) {
-    // Bark/Tree
-    ctx.fillStyle = '#78350f';
-    ctx.strokeStyle = '#451a03';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(-20, 0);
-    ctx.lineTo(-15, -60 - breathe);
-    ctx.lineTo(15, -60 - breathe);
-    ctx.lineTo(20, 0);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-
-    ctx.fillStyle = '#15803d';
-    ctx.beginPath();
-    ctx.arc(0, -70 - breathe, 30, 0, Math.PI * 2);
-    ctx.arc(-20, -60 - breathe, 25, 0, Math.PI * 2);
-    ctx.arc(20, -60 - breathe, 25, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-
-    ctx.fillStyle = '#a3e635';
-    ctx.shadowColor = '#a3e635';
-    ctx.shadowBlur = 10;
-    ctx.beginPath();
-    ctx.arc(-8, -40 - breathe, 4, 0, Math.PI * 2);
-    ctx.arc(12, -40 - breathe, 4, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.shadowBlur = 0;
-  } else if (tier === 4) {
-    // Magic
-    ctx.fillStyle = '#4c1d95';
-    ctx.strokeStyle = '#2e1065';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.ellipse(0, -40 - breathe, 25, 45, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-
-    ctx.strokeStyle = '#22d3ee';
-    ctx.lineWidth = 2;
-    ctx.shadowColor = '#22d3ee';
-    ctx.shadowBlur = 10;
-    ctx.beginPath();
-    ctx.moveTo(0, -80 - breathe);
-    ctx.lineTo(0, 0);
-    ctx.moveTo(-15, -40 - breathe);
-    ctx.lineTo(15, -40 - breathe);
-    ctx.stroke();
-    ctx.shadowBlur = 0;
-  } else {
-    // Mythical
-    ctx.fillStyle = '#fef08a';
-    ctx.strokeStyle = '#ca8a04';
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.ellipse(0, -50 - breathe, 35, 55, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 3;
-    ctx.shadowColor = '#ffffff';
-    ctx.shadowBlur = 15;
-    ctx.beginPath();
-    ctx.ellipse(0, -110 - breathe + Math.sin(time * 2) * 10, 40, 10, 0, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.shadowBlur = 0;
-  }
-
-  ctx.restore();
-
-  // Evolution Progress Bar
-  const totalEvolutions = (level - 1) * 5 + (stage - 1);
-  const requiredProgress = 100 * Math.pow(1.2, totalEvolutions);
-  const evoPercent = Math.max(0, Math.min(1, evolutionProgress / requiredProgress));
-  
-  ctx.fillStyle = '#1e3a8a';
-  ctx.fillRect(x - 40, y + 32, 80, 6);
-  ctx.fillStyle = '#3b82f6';
-  ctx.fillRect(x - 40, y + 32, 80 * evoPercent, 6);
-  ctx.strokeStyle = '#000';
-  ctx.lineWidth = 1;
-  ctx.strokeRect(x - 40, y + 32, 80, 6);
-
-  // HP Bar
-  const hpPercent = Math.max(0, state.playerHealth / state.maxPlayerHealth);
-  ctx.fillStyle = '#ef4444';
-  ctx.fillRect(x - 40, y + 20, 80, 8);
-  ctx.fillStyle = '#22c55e';
-  ctx.fillRect(x - 40, y + 20, 80 * hpPercent, 8);
-  ctx.strokeStyle = '#000';
-  ctx.lineWidth = 2;
-  ctx.strokeRect(x - 40, y + 20, 80, 8);
-
-  // HP Text
-  ctx.fillStyle = '#fff';
-  ctx.font = 'bold 10px sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText(`HP: ${formatNumber(state.playerHealth)} / ${formatNumber(state.maxPlayerHealth)}`, x, y + 45);
-}
-
-function drawZombie(ctx: CanvasRenderingContext2D, z: Zombie, time: number) {
-  ctx.save();
-  ctx.translate(z.x, z.y);
-
-  const wobble = Math.sin(time * 10 + z.wobbleOffset) * 5;
-  
-  const isHit = z.hitTimer !== undefined && z.hitTimer > 0;
-  if (isHit) {
-    ctx.scale(1.1, 0.9); // Squish effect
-  }
-
-  ctx.fillStyle = 'rgba(0,0,0,0.5)';
-  ctx.beginPath();
-  ctx.ellipse(0, 10, z.size * 0.8, z.size * 0.2, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.fillStyle = isHit ? '#ffffff' : z.color;
-  ctx.strokeStyle = '#000';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.rect(-z.size / 2, -z.size + wobble, z.size, z.size);
-  ctx.fill();
-  ctx.stroke();
-
-  ctx.fillStyle = '#ef4444';
-  ctx.beginPath();
-  ctx.arc(-z.size / 4, -z.size * 0.7 + wobble, z.size * 0.1, 0, Math.PI * 2);
-  ctx.fill();
-
-  if (z.type === 'shield') {
-    ctx.fillStyle = isHit ? '#e9d5ff' : '#8b5cf6';
-    ctx.fillRect(-z.size * 0.8, -z.size * 1.2 + wobble, z.size * 0.4, z.size * 1.4);
-    ctx.strokeRect(-z.size * 0.8, -z.size * 1.2 + wobble, z.size * 0.4, z.size * 1.4);
-  } else if (z.type === 'tank') {
-    ctx.fillStyle = isHit ? '#cbd5e1' : '#64748b';
-    ctx.fillRect(-z.size / 2, -z.size + wobble, z.size, z.size * 0.3);
-  } else if (z.type === 'boss') {
-    // Boss unique visual traits: Glowing eyes and corrupted energy
-    ctx.save();
-    ctx.translate(0, wobble);
-    
-    // Corrupted energy aura
-    ctx.globalAlpha = 0.3 + Math.sin(time * 5) * 0.2;
-    ctx.fillStyle = '#7c3aed';
-    ctx.beginPath();
-    ctx.arc(0, -z.size / 2, z.size * 0.8, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-
-    // Glowing eyes
-    ctx.fillStyle = '#ffffff';
-    ctx.shadowColor = '#ffffff';
-    ctx.shadowBlur = 15;
-    ctx.beginPath();
-    ctx.arc(-z.size / 4, -z.size * 0.7 + wobble, z.size * 0.15, 0, Math.PI * 2);
-    ctx.arc(z.size / 4, -z.size * 0.7 + wobble, z.size * 0.15, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.shadowBlur = 0;
-  }
-
-  const tier = Math.ceil((z.level || 1) / 4);
-  if (tier === 2) {
-    ctx.fillStyle = isHit ? '#e2e8f0' : '#94a3b8';
-    ctx.beginPath();
-    ctx.arc(0, -z.size + wobble, z.size / 2, Math.PI, 0);
-    ctx.fill();
-    ctx.stroke();
-  } else if (tier === 3) {
-    ctx.fillStyle = isHit ? '#f5d0fe' : '#d946ef';
-    ctx.beginPath();
-    ctx.arc(0, -z.size + wobble, z.size / 3, Math.PI, 0);
-    ctx.fill();
-    ctx.stroke();
-  } else if (tier === 4) {
-    ctx.fillStyle = '#f8fafc';
-    ctx.beginPath();
-    ctx.moveTo(-z.size / 4, -z.size + wobble);
-    ctx.lineTo(-z.size / 4 - 10, -z.size - 15 + wobble);
-    ctx.lineTo(0, -z.size + wobble);
-    ctx.fill();
-    ctx.stroke();
-  } else if (tier === 5) {
-    ctx.strokeStyle = isHit ? '#fca5a5' : '#dc2626';
-    ctx.lineWidth = 3;
-    ctx.shadowColor = isHit ? '#fca5a5' : '#dc2626';
-    ctx.shadowBlur = 10;
-    ctx.strokeRect(-z.size / 2 - 5, -z.size + wobble - 5, z.size + 10, z.size + 10);
-    ctx.shadowBlur = 0;
-  }
-
-  // Health Bar above enemy
-  const hpPercent = Math.max(0, z.hp / z.maxHp);
-  const barWidth = z.size * 1.2;
-  const barHeight = 4;
-  const barY = -z.size - 15 + wobble;
-
-  // Background (semi-transparent dark)
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-  ctx.fillRect(-barWidth / 2, barY, barWidth, barHeight);
-  
-  // Foreground (color based on health)
-  ctx.fillStyle = hpPercent > 0.5 ? '#22c55e' : hpPercent > 0.2 ? '#eab308' : '#ef4444';
-  ctx.fillRect(-barWidth / 2, barY, barWidth * hpPercent, barHeight);
-
-  // Border
-  ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
-  ctx.lineWidth = 1;
-  ctx.strokeRect(-barWidth / 2, barY, barWidth, barHeight);
-
-  ctx.restore();
-}
+// Draw functions are in src/rendering/ — re-export for backward compatibility
+export { drawGame as renderGame } from './rendering/draw-game';
+export const drawGame = renderGame;
