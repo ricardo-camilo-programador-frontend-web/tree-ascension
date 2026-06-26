@@ -3,41 +3,12 @@ import { formatNumber } from './utils/number';
 
 let _nextId = 0;
 const nextId = (): string => String(++_nextId);
-/** Sync the ID counter past the highest existing entity ID to prevent collisions after save/load. */
-export const syncNextId = (state: GameState): void => {
-  let maxId = 0;
-  for (const zombie of state.zombies) {
-    const id = parseInt(zombie.id);
-    if (!isNaN(id) && id > maxId) maxId = id;
-  }
-  for (const projectile of state.projectiles) {
-    const id = parseInt(projectile.id);
-    if (!isNaN(id) && id > maxId) maxId = id;
-  }
-  for (const particle of state.particles) {
-    const id = parseInt(particle.id);
-    if (!isNaN(id) && id > maxId) maxId = id;
-  }
-  for (const coin of state.coins) {
-    const id = parseInt(coin.id);
-    if (!isNaN(id) && id > maxId) maxId = id;
-  }
-  for (const sun of state.suns) {
-    const id = parseInt(sun.id);
-    if (!isNaN(id) && id > maxId) maxId = id;
-  }
-  for (const sunBurst of state.sunBursts) {
-    const id = parseInt(sunBurst.id);
-    if (!isNaN(id) && id > maxId) maxId = id;
-  }
-  _nextId = maxId;
-};
 const resetNextId = (): void => {
   _nextId = 0;
 };
 
 export { INTERNAL_W, INTERNAL_H } from './config/constants';
-import { INTERNAL_W, INTERNAL_H, GROUND_HEIGHT, GROUND_Y, PLANT_X, PLANT_Y, SUB_STEP_SIZE, MAX_DT, MAX_ATTACK_SPEED, HEAL_KILL_THRESHOLD, MAX_PARTICLES, MAX_PARTICLES_LOW_PERF, PORTAL_WIDTH_RATIO } from './config/constants';
+import { INTERNAL_W, INTERNAL_H, GROUND_HEIGHT, GROUND_Y, PLANT_X, PLANT_Y, SUB_STEP_SIZE, MAX_DT, MAX_ATTACK_SPEED, HEAL_KILL_THRESHOLD, MAX_PARTICLES, MAX_PARTICLES_LOW_PERF } from './config/constants';
 import { drawGame as renderGame } from './rendering/draw-game';
 
 export type ZombieType = 'basic' | 'fast' | 'tank' | 'shield' | 'mutant' | 'boss';
@@ -413,7 +384,7 @@ const spawnZombie = (state: GameState) => {
     type,
     level: state.wave,
     x: INTERNAL_W + 50,
-    y: INTERNAL_H - 100,
+    y: GROUND_Y,
     hp, maxHp: hp,
     speed,
     damage: isBoss ? 50 : 10,
@@ -454,10 +425,10 @@ export const calculateClickDamage = (state: GameState, isCrit: boolean): number 
 export const handleZombieKill = (state: GameState, zombie: Zombie, index: number) => {
   playDeathSound();
   const reward = zombie.reward * state.energyMultiplier;
-  state.energy += reward;
   state.stats.totalEnergyGenerated += reward;
   state.waveState.killed++;
   state.enemiesKilledForHeal++;
+  state.stats.enemiesKilled++;
 
   // Poison Cloud: Plague evolution
   if (state.abilities.poisonCloud.evolutions.includes('contagious')) {
@@ -465,7 +436,7 @@ export const handleZombieKill = (state: GameState, zombie: Zombie, index: number
       const dx = other.x - zombie.x;
       const dy = other.y - zombie.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist < 150 && other.id !== zombie.id) {
+      if (dist < GROUND_HEIGHT * 1.5 && other.id !== zombie.id) {
         other.poisonTimer = 3;
         other.poisonDamage = (zombie.poisonDamage || 0) * 0.5;
         other.poisonTicks = 3;
@@ -473,8 +444,8 @@ export const handleZombieKill = (state: GameState, zombie: Zombie, index: number
     });
   }
 
-  // Heal 1 HP per 1000 kills
-  if (state.enemiesKilledForHeal >= 1000) {
+  // Heal 1 HP per HEAL_KILL_THRESHOLD kills
+  if (state.enemiesKilledForHeal >= HEAL_KILL_THRESHOLD) {
     state.enemiesKilledForHeal = 0;
     state.playerHealth = Math.min(state.maxPlayerHealth, state.playerHealth + 1);
   }
@@ -564,7 +535,7 @@ export const applyDamageToPlayer = (state: GameState, amount: number) => {
   state.floatingTexts.push({
     id: nextId(),
     text: `-${formatNumber(amount)}`,
-    x: 150, // Player position (approx)
+    x: PLANT_X, // Player position
     y: INTERNAL_H - 150,
     life: 0,
     maxLife: 1.0,
@@ -580,13 +551,12 @@ export const updateGame = (state: GameState, _unused_dt: number) => {
 
   if (state.modal.isOpen) return;
 
-  const maxDt = 3600; 
-  let effectiveDt = Math.min(realDt, maxDt);
+  let effectiveDt = Math.min(realDt, MAX_DT);
 
   // If dt is very small (e.g. < 1ms), skip to avoid precision issues
   if (effectiveDt < 0.001) return;
 
-  const subStepSize = 0.05; // 50ms chunks for better stability
+  const subStepSize = SUB_STEP_SIZE; // 50ms chunks for better stability
   while (effectiveDt > 0) {
     const step = Math.min(effectiveDt, subStepSize);
     runUpdateStep(state, step);
@@ -636,7 +606,7 @@ const runUpdateStep = (state: GameState, dt: number) => {
     for (let k = 0; k < 30; k++) {
       state.particles.push({
         id: nextId(),
-        x: 150, y: INTERNAL_H - 100,
+        x: PLANT_X, y: GROUND_Y,
         vx: (Math.random() - 0.5) * 400,
         vy: (Math.random() - 0.5) * 400,
         life: 0, maxLife: 1,
@@ -660,7 +630,7 @@ const runUpdateStep = (state: GameState, dt: number) => {
     
     if (state.abilities.sunBurst.evolutions.includes('larger_radius')) radius = 1.5;
 
-    state.sunBursts.push({ id: nextId(), x: 150, y: INTERNAL_H - 100, life: 0, maxLife: radius });
+    state.sunBursts.push({ id: nextId(), x: PLANT_X, y: GROUND_Y, life: 0, maxLife: radius });
     playSunBurstSound();
 
     state.zombies.forEach(z => {
@@ -756,7 +726,7 @@ const runUpdateStep = (state: GameState, dt: number) => {
           state.particles.push({
             id: nextId(),
             x: z.x + (Math.random() - 0.5) * z.size, 
-            y: INTERNAL_H - 100, // Ground level
+            y: GROUND_Y, // Ground level
             vx: 0, vy: -100 - Math.random() * 50,
             life: 0, maxLife: 0.4,
             color: state.upgrades.grassEvolutions.includes('poison_grass') ? '#a855f7' : '#4ade80', size: 4,
@@ -807,8 +777,8 @@ const runUpdateStep = (state: GameState, dt: number) => {
     
     // Magnetic Field evolution
     if (state.abilities.solGenerator.evolutions.includes('auto_collect')) {
-      const dx = 150 - s.x;
-      const dy = (INTERNAL_H - 100) - s.y;
+      const dx = PLANT_X - s.x;
+      const dy = GROUND_Y - s.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
       if (dist < 300) {
         const moveSpeed = 400 * dt;
@@ -844,8 +814,8 @@ const runUpdateStep = (state: GameState, dt: number) => {
     c.y += c.vy * dt;
     c.vy += 800 * dt; // Gravity
     
-    if (c.y > INTERNAL_H - 100) {
-      c.y = INTERNAL_H - 100;
+    if (c.y > GROUND_Y) {
+      c.y = GROUND_Y;
       c.vy *= -0.5; // Bounce
       c.vx *= 0.8; // Friction
     }
@@ -860,8 +830,8 @@ const runUpdateStep = (state: GameState, dt: number) => {
   // Plant shooting
   // Attack Speed softcap: if > 10 attacks/second, apply reduction
   let actualAttackSpeed = state.plant.baseAttackSpeed * state.plant.attackSpeedMultiplier;
-  if (actualAttackSpeed > 10) {
-    actualAttackSpeed = 10 + Math.sqrt(actualAttackSpeed - 10);
+  if (actualAttackSpeed > MAX_ATTACK_SPEED) {
+    actualAttackSpeed = MAX_ATTACK_SPEED + Math.sqrt(actualAttackSpeed - MAX_ATTACK_SPEED);
   }
   const shotInterval = 1 / actualAttackSpeed;
   state.timers.lastShot += dt;
@@ -878,8 +848,8 @@ const runUpdateStep = (state: GameState, dt: number) => {
       playShootSound();
       state.projectiles.push({
         id: nextId(),
-        x: 150,
-        y: INTERNAL_H - 120,
+        x: PLANT_X,
+        y: PLANT_Y,
         speed: 400,
         damage: calculatePlantDamage(state),
         size: state.plant.projectileSize,
@@ -972,7 +942,23 @@ const runUpdateStep = (state: GameState, dt: number) => {
     }
 
     if (z.hp <= 0) {
-      handleZombieKill(state, z, i);
+      const reward = handleZombieKill(state, z, i);
+      
+      // Spawn coins for auto-attack kills (energy is collected via coins, not directly)
+      const numCoins = Math.min(10, Math.max(3, Math.floor(reward / 10)));
+      const valuePerCoin = reward / numCoins;
+      for (let k = 0; k < numCoins; k++) {
+        state.coins.push({
+          id: nextId(),
+          x: z.x + (Math.random() - 0.5) * 20,
+          y: z.y - z.size / 2,
+          vx: (Math.random() - 0.5) * 200,
+          vy: -100 - Math.random() * 100,
+          life: 0,
+          maxLife: 0.5 + Math.random() * 0.5,
+          value: valuePerCoin
+        });
+      }
       continue;
     }
 
@@ -983,18 +969,20 @@ const runUpdateStep = (state: GameState, dt: number) => {
 
     z.x -= currentSpeed * dt;
 
-    if (z.x <= 180) {
+    if (z.x <= PLANT_X + GROUND_HEIGHT * 0.3) {
       // Player takes damage based on wave
       const damage = Math.max(1, Math.floor(state.wave * 0.5));
       applyDamageToPlayer(state, damage);
       
       state.zombies.splice(i, 1);
+      // M5 fix: breach counts toward wave resolution (so wave can still complete)
+      // but handleZombieKill is NOT called — no energy reward, no stat increment
       state.waveState.killed++;
 
       for (let k = 0; k < 10; k++) {
         state.particles.push({
           id: nextId(),
-          x: 150, y: INTERNAL_H - 100,
+          x: PLANT_X, y: GROUND_Y,
           vx: (Math.random() - 0.5) * 300,
           vy: (Math.random() - 0.5) * 300 - 100,
           life: 0, maxLife: 0.5,
@@ -1020,9 +1008,10 @@ const runUpdateStep = (state: GameState, dt: number) => {
 
   // Wave progression
   if (state.waveState.killed >= state.waveState.totalToSpawn) {
+    state.lastCompletedWave = state.wave; // Capture completed wave BEFORE incrementing (C4 fix)
     state.wave++;
     state.waveCompleted = true;
-    state.lastCompletedWave = state.wave;
+    state.stats.wavesCompleted++; // C3 fix: increment stat
     resetWave(state);
   }
 
@@ -1034,7 +1023,7 @@ const runUpdateStep = (state: GameState, dt: number) => {
   }
 
   // Update particles
-  const maxParticles = state.settings.lowPerformance ? 50 : 200;
+  const maxParticles = state.settings.lowPerformance ? MAX_PARTICLES_LOW_PERF : MAX_PARTICLES;
   for (let i = state.particles.length - 1; i >= 0; i--) {
     const p = state.particles[i];
     p.life += dt;

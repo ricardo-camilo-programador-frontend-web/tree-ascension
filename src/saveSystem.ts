@@ -17,6 +17,7 @@ export interface SaveData {
   progress: {
     wave: number;
     enemiesKilled: number;
+    wavesCompleted: number;
   };
   upgrades: {
     levels: Record<string, number>;
@@ -32,6 +33,11 @@ export interface SaveData {
     totalEnergyGenerated: number;
     totalClicks: number;
     totalPlayTime: number;
+  };
+  plantStats: {
+    baseDamage: number;
+    damageMultiplier: number;
+    attackSpeedMultiplier: number;
   };
 }
 
@@ -62,6 +68,7 @@ function mapStateToSave(state: GameState): SaveData {
     progress: {
       wave: state.wave,
       enemiesKilled: state.stats.enemiesKilled,
+      wavesCompleted: state.stats.wavesCompleted,
     },
     upgrades: {
       levels: {
@@ -90,8 +97,13 @@ function mapStateToSave(state: GameState): SaveData {
       totalClicks: state.stats.totalClicks,
       totalPlayTime: state.timers.gameTime,
     },
+    plantStats: {
+      baseDamage: state.plant.baseDamage,
+      damageMultiplier: state.plant.damageMultiplier,
+      attackSpeedMultiplier: state.plant.attackSpeedMultiplier,
+    },
   };
-}
+};
 
 function mapSaveToState(save: SaveData): GameState {
   const state = createInitialState();
@@ -117,7 +129,8 @@ function mapSaveToState(save: SaveData): GameState {
 
   // Restore progress
   state.wave = save.progress.wave;
-  state.stats.enemiesKilled = save.progress.enemiesKilled;
+  state.stats.enemiesKilled = save.progress.enemiesKilled || 0;
+  state.stats.wavesCompleted = save.progress.wavesCompleted || 0;
   
   // Restore upgrades
   if (save.upgrades && save.upgrades.levels) {
@@ -172,9 +185,21 @@ function mapSaveToState(save: SaveData): GameState {
     state.timers.gameTime = save.stats.totalPlayTime;
   }
   
-  // Recalculate derived stats
-  state.plant.damageMultiplier = Math.pow(1.15, state.upgrades.damageLevel - 1);
-  state.plant.attackSpeedMultiplier = Math.pow(1.1, state.upgrades.speedLevel - 1);
+  // Restore persisted plant stats (C1 fix: baseDamage must survive reload)
+  if (save.plantStats) {
+    state.plant.baseDamage = save.plantStats.baseDamage || state.plant.baseDamage;
+    state.plant.damageMultiplier = save.plantStats.damageMultiplier || state.plant.damageMultiplier;
+    state.plant.attackSpeedMultiplier = save.plantStats.attackSpeedMultiplier || state.plant.attackSpeedMultiplier;
+  } else {
+    // Legacy saves without plantStats — recompute derived stats from upgrade levels
+    state.plant.damageMultiplier = Math.pow(1.15, state.upgrades.damageLevel - 1);
+    state.plant.attackSpeedMultiplier = Math.pow(1.1, state.upgrades.speedLevel - 1);
+    // Recompute baseDamage from total evolutions: baseDamage = 5 * 2^(totalEvolutions)
+    const totalEvolutions = (state.plant.level - 1) * 5 + 4; // stage 1-5 → 4 evolutions per level cycle
+    state.plant.baseDamage = 5 * Math.pow(2, totalEvolutions);
+  }
+  
+  // Recalculate energy multiplier from upgrade level (always derived from energyLevel)
   state.energyMultiplier = Math.pow(1.12, state.upgrades.energyLevel - 1);
   
   // Apply prestige bonuses
@@ -184,16 +209,22 @@ function mapSaveToState(save: SaveData): GameState {
   return state;
 }
 
-function validateSaveData(data: any): boolean {
+function validateSaveData(data: unknown): boolean {
   if (!data || typeof data !== 'object') return false;
   
+  const obj = data as Record<string, unknown>;
+  
   // Basic schema check
-  if (typeof data.version !== 'number') return false;
-  if (!data.player || typeof data.player.energy !== 'number') return false;
+  if (typeof obj.version !== 'number') return false;
+  
+  const player = obj.player as Record<string, unknown> | undefined;
+  if (!player || typeof player.energy !== 'number') return false;
   
   // Logical limits check
-  if (data.player.energy < 0 || data.player.energy > 1e308) return false; // 1e308 is max double
-  if (data.progress && (data.progress.wave < 0 || data.progress.wave > 1e6)) return false;
+  if (player.energy < 0 || player.energy > 1e308) return false; // 1e308 is max double
+  
+  const progress = obj.progress as Record<string, unknown> | undefined;
+  if (progress && (typeof progress.wave !== 'number' || progress.wave < 0 || progress.wave > 1e6)) return false;
   
   return true;
 }
@@ -211,39 +242,31 @@ export const saveGame = (state: GameState) => {
     
     const finalString = JSON.stringify(signedSave);
     
-    // Check localStorage space before writing
+    // Write primary save FIRST, then demote old primary to backup (M2 fix)
+    const currentSave = localStorage.getItem(SAVE_KEY);
+    
     try {
-      const testKey = '__storage_test__';
-      const before = JSON.stringify(localStorage).length;
-      localStorage.setItem(testKey, 'x'.repeat(1024));
-      const after = JSON.stringify(localStorage).length;
-      localStorage.removeItem(testKey);
-      const availableBytes = Math.max(0, 5242880 - after); // ~5MB typical limit
-      if (finalString.length > availableBytes) {
-        console.warn('localStorage almost full, skipping backup');
-        localStorage.setItem(SAVE_KEY, finalString);
-        return;
-      }
+      localStorage.setItem(SAVE_KEY, finalString);
     } catch {
-      // Storage full — try writing main save only
+      // QuotaExceededError — try removing backup to make space, then retry
+      localStorage.removeItem(BACKUP_KEY);
       try {
-        localStorage.removeItem(BACKUP_KEY);
         localStorage.setItem(SAVE_KEY, finalString);
-        console.warn('localStorage full, saved without backup');
       } catch {
         console.error('Cannot save — localStorage is completely full');
+        return;
       }
-      return;
     }
     
-    // Backup previous save
-    const currentSave = localStorage.getItem(SAVE_KEY);
+    // Promote the old primary save to backup (only after new write succeeded)
     if (currentSave) {
-      localStorage.setItem(BACKUP_KEY, currentSave);
+      try {
+        localStorage.setItem(BACKUP_KEY, currentSave);
+      } catch {
+        // Backup write failed (quota) — primary is already saved, just skip backup
+        console.warn('localStorage full, saved without backup');
+      }
     }
-    
-    localStorage.setItem(SAVE_KEY, finalString);
-    console.log('Game saved successfully');
   } catch (e) {
     console.error('Failed to save game', e);
   }
@@ -261,20 +284,25 @@ export const loadGame = (): GameState | null => {
           const parsed = JSON.parse(legacySave);
           // Legacy save format might be { data: GameState, hash: string } or just GameState
           const stateData = parsed.data || parsed;
-          // We can try to validate/map it, or just use it if it looks like a GameState
-          // Since mapSaveToState expects SaveData, we might need to manually adapt it
-          // or just return it if it matches GameState structure (risky but practical for migration)
           
-          // Better approach: Create a SaveData from the legacy state and save it
-          const tempState = stateData as GameState;
-          // Validate critical fields
-          if (typeof tempState.energy === 'number') {
-             const saveData = mapStateToSave(tempState);
-             saveGame(tempState); // This will save it in new format
-             return tempState;
+          // Map legacy state through SaveData pipeline to validate and normalize (C5 fix)
+          if (stateData && typeof stateData.energy === 'number') {
+            const tempState = stateData as Partial<GameState>;
+            const saveData = mapStateToSave(tempState as GameState);
+            // Validate the mapped data before trusting it
+            if (validateSaveData(saveData)) {
+              const migratedState = mapSaveToState(saveData);
+              // Save in new format and clean up legacy key
+              saveGame(migratedState);
+              localStorage.removeItem('idleTD_save');
+              return migratedState;
+            }
           }
+          console.warn('Legacy save failed validation, discarding');
+          localStorage.removeItem('idleTD_save');
         } catch (e) {
           console.error('Failed to migrate legacy save', e);
+          localStorage.removeItem('idleTD_save');
         }
       }
       return null;
@@ -335,12 +363,18 @@ export const exportSave = (state: GameState): string => {
   const json = JSON.stringify(saveData);
   const signature = generateHash(json + INTEGRITY_SALT);
   const signedSave: SignedSave = { data: saveData, signature };
-  return btoa(JSON.stringify(signedSave));
+  // UTF-8 safe base64 encoding
+  const jsonString = JSON.stringify(signedSave);
+  const bytes = new TextEncoder().encode(jsonString);
+  return btoa(String.fromCharCode(...bytes));
 };
 
 export const importSave = (base64String: string): GameState => {
   try {
-    const jsonString = atob(base64String);
+    // UTF-8 safe base64 decoding
+    const binaryString = atob(base64String);
+    const bytes = Uint8Array.from(binaryString, c => c.charCodeAt(0));
+    const jsonString = new TextDecoder().decode(bytes);
     const state = parseAndValidateSave(jsonString);
     if (!state) throw new Error('Failed to parse save');
     return state;

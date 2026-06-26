@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { GameState, createInitialState, updateGame, drawGame, handleCanvasClick, buyUpgrade, getUpgradeCostTotal, INTERNAL_W, INTERNAL_H, resetGame } from './game';
+import { GameState, createInitialState, updateGame, drawGame, handleCanvasClick, buyUpgrade, getUpgradeCostTotal, INTERNAL_W, INTERNAL_H, resetGame, getEvolutionSpeed } from './game';
+import { SAVE_INTERVAL, UI_SYNC_INTERVAL } from './config/constants';
 import { saveGame, loadGame, exportSave, importSave, resetSave } from './saveSystem';
 import { formatNumber } from './utils/number';
-import { fpsCounter } from './utils/performance';
+import { fpsCounter, isPageHidden, throttle } from './utils/performance';
 import { getAudioSettings, updateAudioSettings, AudioSettings } from './audio';
 import MoringaInfo from './components/MoringaInfo';
 import { initGlobalAds } from './ads/adsterra';
@@ -62,6 +63,8 @@ export default function App() {
   const [audio, setAudio] = useState<AudioSettings>(getAudioSettings());
   const [confirmModal, setConfirmModal] = useState<{ open: boolean; title: string; message: string; onConfirm: () => void; onCancel: () => void; confirmText?: string; cancelText?: string; destructive?: boolean; lang: Language }>({ open: false, title: '', message: '', onConfirm: () => {}, onCancel: () => {} });
   const [showProgressPanel, setShowProgressPanel] = useState(false);
+  const langRef = useRef(lang);
+  langRef.current = lang;
 
   useEffect(() => {
     initGlobalAds();
@@ -113,17 +116,20 @@ export default function App() {
     const uiInterval = setInterval(() => {
       setUiState(mapStateToUI(gameState.current));
       setFps(fpsCounter.fps);
-      
+
       // Wave completion notification
       if (gameState.current.waveCompleted) {
-        showToast(`${t[lang].wave} ${gameState.current.lastCompletedWave} ${t[lang].waveComplete || 'Complete!'}`, 'success');
+        const currentLang = langRef.current;
+        showToast(`${t[currentLang].wave} ${gameState.current.lastCompletedWave} ${t[currentLang].waveComplete || 'Complete!'}`, 'success');
         gameState.current.waveCompleted = false;
       }
-    }, 100);
+    }, UI_SYNC_INTERVAL);
 
     const saveInterval = setInterval(() => {
+      // H3 fix: skip autosave when page is hidden (rAF is paused, state is stale)
+      if (isPageHidden()) return;
       saveGame(gameState.current);
-    }, 10000); // Save every 10 seconds
+    }, SAVE_INTERVAL); // Save every SAVE_INTERVAL ms
 
     // Keyboard shortcuts
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -145,7 +151,7 @@ export default function App() {
       } else if (e.key === 's' || e.key === 'S') {
         e.preventDefault();
         saveGame(gameState.current);
-        showToast(t[lang].saveSuccess, 'success');
+        showToast(t[langRef.current].saveSuccess, 'success');
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -342,7 +348,7 @@ export default function App() {
     } else if (id === 'energy') {
       return `x${formatNumber(uiState.energyMultiplier)}`;
     } else if (id === 'evolutionSpeed') {
-      const speed = 5 * Math.pow(1.3, uiState.upgrades.evolutionSpeedLevel - 1);
+      const speed = getEvolutionSpeed(uiState.upgrades.evolutionSpeedLevel);
       return `${formatNumber(speed)}/s`;
     }
     return '';
