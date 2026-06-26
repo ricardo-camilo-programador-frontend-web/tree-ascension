@@ -1,0 +1,18 @@
+frontend:
+  - changed-files:
+      - any-glob-to-any-file: ["src/**/*.{ts,tsx}", "src/**/*.{css,html}"]
+config:
+  - changed-files:
+      - any-glob-to-any-file: ["*.config.*", "tsconfig.json", "biome.json"]
+dependencies:
+  - changed-files:
+      - any-glob-to-any-file: ["package.json", "package-lock.json"]
+tests:
+  - changed-files:
+      - any-glob-to-any-file: ["**/*.test.ts", "tests/**"]
+documentation:
+  - changed-files:
+      - any-glob-to-any-file: ["**/*.md", "docs/**"]
+ci:
+  - changed-files:
+      - any-glob-to-any-file: [".github/**"]
