@@ -2,58 +2,67 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
   pull_request:
-    branches: [main]
+    branches: [main, develop]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  validate:
-    name: Validar Linting e Formatacao
-    runs-on: self-hosted
+  secret-scan:
+    name: Secret Scanning
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: TruffleHog OSS
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: .
+          extra: --regex --results=verified,unknown --entropy=False
+
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
     timeout-minutes: 10
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup PATH
-        run: echo "/usr/local/bin" >> $GITHUB_PATH
-      - name: Cache npm
-        uses: actions/cache@v3
+      - uses: actions/setup-node@v4
         with:
-          path: ~/.npm
-          key: npm-${{ hashFiles('package-lock.json') }}
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - name: npm audit
+        run: npm audit --audit-level moderate
+        continue-on-error: true
 
-      - name: Instalar dependencias
-        run: npm ci
-
-      - name: Executar Lint
-        run: npm run lint
-
-  build:
-    name: Build do Projeto
-    runs-on: self-hosted
+  validate:
+    name: Type Check + Lint + Build
+    runs-on: ubuntu-latest
     timeout-minutes: 15
-    env:
-      GEMINI_API_KEY: ""
-      APP_URL: ""
-      VITE_ADSTERRA_PUBLISHER_ID: ""
-      VITE_ENABLE_ADSTERRA: ""
+    needs: [secret-scan, security]
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup PATH
-        run: echo "/usr/local/bin" >> $GITHUB_PATH
-      - name: Cache npm
-        uses: actions/cache@v3
+      - uses: actions/setup-node@v4
         with:
-          path: ~/.npm
-          key: npm-${{ hashFiles('package-lock.json') }}
-
-      - name: Instalar dependencias
-        run: npm ci
-
-      - name: Build do projeto
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - name: Type Check
+        run: npm run type-check
+      - name: Biome Check
+        run: npm run biome:check
+      - name: ESLint
+        run: npm run eslint
+      - name: Run Tests
+        run: npm test
+      - name: Build
         run: npm run build
-
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -61,59 +70,28 @@ jobs:
           path: dist/
           retention-days: 7
 
-  security:
-    name: Auditoria de Seguranca
+  sonar:
+    name: SonarQube Analysis
     runs-on: self-hosted
-    timeout-minutes: 10
+    needs: [secret-scan, security]
     continue-on-error: true
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup PATH
-        run: echo "/usr/local/bin" >> $GITHUB_PATH
-      - name: Cache npm
-        uses: actions/cache@v3
         with:
-          path: ~/.npm
-          key: npm-${{ hashFiles('package-lock.json') }}
-
-      - name: Instalar dependencias
-        run: npm ci
-
-      - name: Auditoria de vulnerabilidades
-        shell: bash
-        run: |
-          set -o pipefail
-          LOG_FILE="$(mktemp)"
-
-          npm audit --audit-level moderate 2>&1 | tee "$LOG_FILE"
-          status=${PIPESTATUS[0]}
-
-          if [ "$status" -eq 0 ]; then
-            exit 0
-          fi
-
-
-          exit "$status"
-
-  sonar:
-    name: Analise SonarQube
-    runs-on: self-hosted
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup PATH
-        run: echo "/usr/local/bin" >> $GITHUB_PATH
-      - name: Cache npm
-        uses: actions/cache@v3
-        with:
-          path: ~/.npm
-          key: npm-${{ hashFiles('package-lock.json') }}
-
-      - name: Instalar dependencias
-        run: pnpm install --ignore-scripts
-
+          fetch-depth: 0
       - name: Run SonarScanner
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: /opt/sonar-scanner/bin/sonar-scanner
+
+  validate-pr-base:
+    name: Validate PR Base Branch
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Check base branch
+        run: |
+          if [ "${{ github.base_ref }}" != "develop" ] && [ "${{ github.base_ref }}" != "main" ]; then
+            echo "::error::PRs must target 'develop' or 'main'"
+            exit 1
+          fi

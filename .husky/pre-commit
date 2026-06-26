@@ -1,0 +1,5 @@
+#!/usr/bin/env sh
+set -e
+
+# Run lint-staged (Biome + ESLint on staged files only)
+npx lint-staged

@@ -1,0 +1,34 @@
+# Gitleaks configuration for Tree Ascension
+# Based on SGS_WEB security practices
+
+title = "Tree Ascension Secret Scanning"
+
+[extend]
+useDefault = true
+
+# Custom rules for game-specific patterns
+[[rules]]
+id = "adsterra-publisher-id"
+description = "Adsterra Publisher ID"
+regex = '''VITE_ADSTERRA_PUBLISHER_ID=[0-9]+'''
+tags = ["token", "adsterra"]
+
+[[rules]]
+id = "api-keys-generic"
+description = "Generic API Key"
+regex = '''(?i)(?:api[_-]?key|apikey|secret[_-]?key)\s*[:=]\s*['"]?[a-zA-Z0-9]{32,}['"]?'''
+tags = ["key", "api"]
+
+[allowlist]
+description = "Allowed false positives"
+paths = [
+  '''package-lock\.json''',
+  '''\.env\.example''',
+]
+
+regexes = [
+  # Env example files documenting variable names (not real secrets)
+  '''VITE_ADSTERRA_PUBLISHER_ID=5657609''',
+  # Game code referencing env vars by name
+  '''import\.meta\.env\.VITE_''',
+]
