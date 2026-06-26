@@ -20,6 +20,7 @@ export const MAX_DT = 3600;
 export const MAX_ATTACK_SPEED = 10;
 
 export const HEAL_KILL_THRESHOLD = 1000;
+export const MAX_COINS = 100;
 
 export const SAVE_INTERVAL = 10000;
 export const UI_SYNC_INTERVAL = 100;

@@ -186,10 +186,11 @@ function mapSaveToState(save: SaveData): GameState {
   }
   
   // Restore persisted plant stats (C1 fix: baseDamage must survive reload)
-  if (save.plantStats) {
-    state.plant.baseDamage = save.plantStats.baseDamage || state.plant.baseDamage;
-    state.plant.damageMultiplier = save.plantStats.damageMultiplier || state.plant.damageMultiplier;
-    state.plant.attackSpeedMultiplier = save.plantStats.attackSpeedMultiplier || state.plant.attackSpeedMultiplier;
+  const hasPlantStats = !!save.plantStats;
+  if (hasPlantStats) {
+    state.plant.baseDamage = save.plantStats!.baseDamage || state.plant.baseDamage;
+    state.plant.damageMultiplier = save.plantStats!.damageMultiplier || state.plant.damageMultiplier;
+    state.plant.attackSpeedMultiplier = save.plantStats!.attackSpeedMultiplier || state.plant.attackSpeedMultiplier;
   } else {
     // Legacy saves without plantStats — recompute derived stats from upgrade levels
     state.plant.damageMultiplier = Math.pow(1.15, state.upgrades.damageLevel - 1);
@@ -202,8 +203,10 @@ function mapSaveToState(save: SaveData): GameState {
   // Recalculate energy multiplier from upgrade level (always derived from energyLevel)
   state.energyMultiplier = Math.pow(1.12, state.upgrades.energyLevel - 1);
   
-  // Apply prestige bonuses
-  state.plant.baseDamage *= (1 + state.prestige.upgrades.soulRoots * 0.1);
+  // Apply prestige bonuses — only for legacy saves (new saves already have prestige baked into plantStats)
+  if (!hasPlantStats) {
+    state.plant.baseDamage *= (1 + state.prestige.upgrades.soulRoots * 0.1);
+  }
   state.energyMultiplier *= (1 + state.prestige.upgrades.ancientSun * 0.15);
   
   return state;
@@ -215,16 +218,26 @@ function validateSaveData(data: unknown): boolean {
   const obj = data as Record<string, unknown>;
   
   // Basic schema check
-  if (typeof obj.version !== 'number') return false;
+  if (typeof obj.version !== 'number' || !Number.isFinite(obj.version)) return false;
   
   const player = obj.player as Record<string, unknown> | undefined;
-  if (!player || typeof player.energy !== 'number') return false;
+  if (!player || typeof player.energy !== 'number' || !Number.isFinite(player.energy)) return false;
   
-  // Logical limits check
-  if (player.energy < 0 || player.energy > 1e308) return false; // 1e308 is max double
+  // Logical limits check (Number.isFinite rejects NaN and Infinity)
+  if (player.energy < 0 || player.energy > 1e308) return false;
   
   const progress = obj.progress as Record<string, unknown> | undefined;
-  if (progress && (typeof progress.wave !== 'number' || progress.wave < 0 || progress.wave > 1e6)) return false;
+  if (progress) {
+    if (typeof progress.wave !== 'number' || !Number.isFinite(progress.wave) || progress.wave < 0 || progress.wave > 1e6) return false;
+    if (typeof progress.enemiesKilled !== 'number' && progress.enemiesKilled !== undefined) return false;
+  }
+  
+  // Validate plantStats if present
+  const plantStats = obj.plantStats as Record<string, unknown> | undefined;
+  if (plantStats) {
+    if (typeof plantStats.baseDamage !== 'number' || !Number.isFinite(plantStats.baseDamage) || plantStats.baseDamage <= 0) return false;
+    if (typeof plantStats.damageMultiplier !== 'number' || !Number.isFinite(plantStats.damageMultiplier) || plantStats.damageMultiplier <= 0) return false;
+  }
   
   return true;
 }
@@ -363,10 +376,14 @@ export const exportSave = (state: GameState): string => {
   const json = JSON.stringify(saveData);
   const signature = generateHash(json + INTEGRITY_SALT);
   const signedSave: SignedSave = { data: saveData, signature };
-  // UTF-8 safe base64 encoding
+  // UTF-8 safe base64 encoding (chunked to avoid stack overflow on large saves)
   const jsonString = JSON.stringify(signedSave);
   const bytes = new TextEncoder().encode(jsonString);
-  return btoa(String.fromCharCode(...bytes));
+  let binary = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  }
+  return btoa(binary);
 };
 
 export const importSave = (base64String: string): GameState => {

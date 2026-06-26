@@ -3,7 +3,7 @@ import { GameState, createInitialState, updateGame, drawGame, handleCanvasClick,
 import { SAVE_INTERVAL, UI_SYNC_INTERVAL } from './config/constants';
 import { saveGame, loadGame, exportSave, importSave, resetSave } from './saveSystem';
 import { formatNumber } from './utils/number';
-import { fpsCounter, isPageHidden, throttle } from './utils/performance';
+import { fpsCounter, isPageHidden } from './utils/performance';
 import { getAudioSettings, updateAudioSettings, AudioSettings } from './audio';
 import MoringaInfo from './components/MoringaInfo';
 import { initGlobalAds } from './ads/adsterra';

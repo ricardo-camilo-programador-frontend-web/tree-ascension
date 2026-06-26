@@ -8,7 +8,7 @@ const resetNextId = (): void => {
 };
 
 export { INTERNAL_W, INTERNAL_H } from './config/constants';
-import { INTERNAL_W, INTERNAL_H, GROUND_HEIGHT, GROUND_Y, PLANT_X, PLANT_Y, SUB_STEP_SIZE, MAX_DT, MAX_ATTACK_SPEED, HEAL_KILL_THRESHOLD, MAX_PARTICLES, MAX_PARTICLES_LOW_PERF } from './config/constants';
+import { INTERNAL_W, INTERNAL_H, GROUND_HEIGHT, GROUND_Y, PLANT_X, PLANT_Y, SUB_STEP_SIZE, MAX_DT, MAX_ATTACK_SPEED, HEAL_KILL_THRESHOLD, MAX_PARTICLES, MAX_PARTICLES_LOW_PERF, MAX_COINS } from './config/constants';
 import { drawGame as renderGame } from './rendering/draw-game';
 
 export type ZombieType = 'basic' | 'fast' | 'tank' | 'shield' | 'mutant' | 'boss';
@@ -425,7 +425,7 @@ export const calculateClickDamage = (state: GameState, isCrit: boolean): number 
 export const handleZombieKill = (state: GameState, zombie: Zombie, index: number) => {
   playDeathSound();
   const reward = zombie.reward * state.energyMultiplier;
-  state.stats.totalEnergyGenerated += reward;
+  // Note: totalEnergyGenerated is tracked at coin expiry to avoid double-counting
   state.waveState.killed++;
   state.enemiesKilledForHeal++;
   state.stats.enemiesKilled++;
@@ -824,6 +824,17 @@ const runUpdateStep = (state: GameState, dt: number) => {
       state.energy += c.value;
       state.stats.totalEnergyGenerated += c.value;
       state.coins.splice(i, 1);
+    }
+  }
+
+  // Cap coins to prevent visual/perf clutter (MOA-W3)
+  if (state.coins.length > MAX_COINS) {
+    // Merge overflow coins into the oldest ones (energy is granted on expiry)
+    while (state.coins.length > MAX_COINS) {
+      const oldest = state.coins[0];
+      state.energy += oldest.value;
+      state.stats.totalEnergyGenerated += oldest.value;
+      state.coins.shift();
     }
   }
 
