@@ -112,7 +112,7 @@ moringa: {
       curiosity3: 'Быстро растет даже на бедных почвах.',
       footer: '© 2026 Моринга масличная – Образовательная информация.'
     },
-resets: 'Resets',
+resets: 'Сбросы',
   progressTitle: 'Progress',
   progressScore: 'Progress Score',
   statistics: 'Statistics',

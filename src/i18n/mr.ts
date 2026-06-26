@@ -112,7 +112,7 @@ moringa: {
       curiosity3: 'निकृष्ट जमिनीत आणि कोरड्या हवामानातही वेगाने वाढते.',
       footer: '© २०२६ मोरिंगा ओलिफेरा – शैक्षणिक माहिती.'
     },
-resets: 'Resets',
+resets: 'रीसेट',
   progressTitle: 'Progress',
   progressScore: 'Progress Score',
   statistics: 'Statistics',

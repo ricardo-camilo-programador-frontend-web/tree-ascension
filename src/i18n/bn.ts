@@ -112,7 +112,7 @@ moringa: {
       curiosity3: 'খারাপ মাটি এবং শুষ্ক জলবায়ুতেও দ্রুত বৃদ্ধি পায়।',
       footer: '© ২০২৬ মরিঙ্গা ওলিফেরা – শিক্ষামূলক তথ্য।'
     },
-resets: 'Resets',
+resets: 'রিসেট',
   progressTitle: 'Progress',
   progressScore: 'Progress Score',
   statistics: 'Statistics',

@@ -330,7 +330,7 @@ export default function ProgressPanel({ lang, uiState, onClose }: ProgressPanelP
                 <div className="text-xl font-black text-emerald-400">{uiState.plant.level}-{uiState.plant.stage}</div>
               </div>
               <div className="bg-stone-950 rounded-xl p-4 border border-stone-800">
-                <div className="text-xs text-stone-500 uppercase tracking-wider mb-1">{t[lang].resets || 'Resets'}</div>
+                <div className="text-xs text-stone-500 uppercase tracking-wider mb-1">{t[lang].resets}</div>
                 <div className="text-xl font-black text-orange-400">{uiState.resets}</div>
               </div>
               <div className="bg-stone-950 rounded-xl p-4 border border-stone-800">

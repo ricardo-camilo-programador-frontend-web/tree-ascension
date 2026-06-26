@@ -112,7 +112,7 @@ moringa: {
       curiosity3: 'Phát triển nhanh ngay cả ở đất nghèo dinh dưỡng và khí hậu khô hạn.',
       footer: '© 2026 Moringa Oleifera – Thông tin giáo dục và khoa học.'
     },
-resets: 'Resets',
+resets: 'Đặt lại',
   progressTitle: 'Progress',
   progressScore: 'Progress Score',
   statistics: 'Statistics',

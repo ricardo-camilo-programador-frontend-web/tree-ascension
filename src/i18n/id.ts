@@ -112,7 +112,7 @@ moringa: {
       curiosity3: 'Tumbuh cepat bahkan di tanah miskin dan iklim gersang.',
       footer: '© 2026 Moringa Oleifera – Informasi Edukasi dan Ilmiah.'
     },
-resets: 'Resets',
+resets: 'Atur Ulang',
   progressTitle: 'Progress',
   progressScore: 'Progress Score',
   statistics: 'Statistics',

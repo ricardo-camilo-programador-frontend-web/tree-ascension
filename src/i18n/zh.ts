@@ -112,7 +112,7 @@ moringa: {
       curiosity3: '即使在贫瘠的土壤和干旱气候中也能快速生长。',
       footer: '© 2026 辣木 – 教育与科学信息。'
     },
-resets: 'Resets',
+resets: '重置',
   progressTitle: 'Progress',
   progressScore: 'Progress Score',
   statistics: 'Statistics',

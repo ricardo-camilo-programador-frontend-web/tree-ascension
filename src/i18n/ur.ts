@@ -112,7 +112,7 @@ moringa: {
       curiosity3: 'بنجر مٹی اور خشک آب و ہوا میں بھی تیزی سے بڑھتا ہے۔',
       footer: '© 2026 مورینگا اولیفیرا – تعلیمی معلومات।'
     },
-resets: 'Resets',
+resets: 'ری سیٹ',
   progressTitle: 'Progress',
   progressScore: 'Progress Score',
   statistics: 'Statistics',

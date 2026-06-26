@@ -112,7 +112,7 @@ moringa: {
       curiosity3: 'Pousse en sols pauvres et climats arides.',
       footer: '© 2026 Moringa Oleifera – Informations Éducatives.'
     },
-resets: 'Resets',
+resets: 'Réinitialisations',
   progressTitle: 'Progress',
   progressScore: 'Progress Score',
   statistics: 'Statistics',

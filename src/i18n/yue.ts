@@ -112,7 +112,7 @@ moringa: {
       curiosity3: '即使喺貧瘠嘅土地同乾旱嘅氣候下都能夠快速生長。',
       footer: '© 2026 辣木 (Moringa Oleifera) – 教育同科學資訊'
     },
-resets: 'Resets',
+resets: '重置',
   progressTitle: 'Progress',
   progressScore: 'Progress Score',
   statistics: 'Statistics',

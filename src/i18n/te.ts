@@ -112,7 +112,7 @@ moringa: {
       curiosity3: 'సారహీనమైన నేలల్లో మరియు పొడి వాతావరణంలో కూడా వేగంగా పెరుగుతుంది.',
       footer: '© 2026 మునగ (మోరింగా ఒలీఫెరా) – విద్యా సమాచారం.'
     },
-resets: 'Resets',
+resets: 'రీసెట్',
   progressTitle: 'Progress',
   progressScore: 'Progress Score',
   statistics: 'Statistics',

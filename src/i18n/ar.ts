@@ -112,7 +112,7 @@ moringa: {
       curiosity3: 'تنمو في التربة الفقيرة والمناخات الجافة.',
       footer: '© 2026 المورينجا أوليفيرا – معلومات تعليمية.'
     },
-resets: 'Resets',
+resets: 'إعادة التعيين',
   progressTitle: 'Progress',
   progressScore: 'Progress Score',
   statistics: 'Statistics',

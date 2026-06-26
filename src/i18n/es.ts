@@ -112,7 +112,7 @@ moringa: {
      currentResets: 'Resets Actuales',
      startingEnergy: 'Energía Inicial Después del Reinicio',
      resetYourProgress: 'Reinicia tu progreso y comienza de nuevo con bonos permanentes.',
-resets: 'Resets',
+resets: 'Reinicios',
   progressTitle: 'Progress',
   progressScore: 'Progress Score',
   statistics: 'Statistics',
