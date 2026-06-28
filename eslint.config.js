@@ -15,7 +15,7 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
 
-  // React Hooks rules
+  // React Hooks rules — disable React Compiler enforcement (v7)
   {
     files: ['**/*.{ts,tsx}'],
     plugins: {
@@ -28,13 +28,26 @@ export default tseslint.config(
       },
     },
     rules: {
-      ...reactHooks.configs.recommended.rules,
       'react-hooks/exhaustive-deps': 'warn',
       'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/static-components': 'off',
+      'react-hooks/use-memo': 'off',
+      'react-hooks/preserve-manual-memoization': 'off',
+      'react-hooks/incompatible-library': 'off',
+      'react-hooks/immutability': 'off',
+      'react-hooks/globals': 'off',
+      'react-hooks/refs': 'off',
+      'react-hooks/set-state-in-effect': 'off',
+      'react-hooks/error-boundaries': 'off',
+      'react-hooks/purity': 'off',
+      'react-hooks/set-state-in-render': 'off',
+      'react-hooks/unsupported-syntax': 'off',
+      'react-hooks/config': 'off',
+      'react-hooks/gating': 'off',
     },
   },
 
-  // Accessibility rules (incremental adoption — warn for existing code)
+  // Accessibility rules (incremental adoption — warn for existing game code)
   {
     files: ['**/*.{ts,tsx}'],
     plugins: {
@@ -45,6 +58,8 @@ export default tseslint.config(
       'jsx-a11y/alt-text': 'warn',
       'jsx-a11y/anchor-has-content': 'warn',
       'jsx-a11y/no-static-element-interactions': 'off',
+      'jsx-a11y/click-events-have-key-events': 'warn',
+      'jsx-a11y/no-noninteractive-element-interactions': 'warn',
     },
   },
 
@@ -61,11 +76,33 @@ export default tseslint.config(
     },
   },
 
-  // Project-specific overrides — game logic uses dynamic patterns safely
+  // TypeScript rules — allow _-prefixed unused vars (intentional API alignment)
+  {
+    files: ['**/*.{ts,tsx}'],
+    rules: {
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+        },
+      ],
+      '@typescript-eslint/no-explicit-any': 'error',
+    },
+  },
+
+  // Project-specific overrides — game logic and browser API shims
   {
     files: ['src/game.ts', 'src/saveSystem.ts'],
     rules: {
       'security/detect-object-injection': 'off',
+    },
+  },
+  {
+    files: ['src/audio.ts', 'src/ads/adsterra.ts'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
     },
   },
 )
