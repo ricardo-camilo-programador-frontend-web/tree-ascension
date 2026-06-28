@@ -26,9 +26,9 @@ paths = [
   '''\.env\.example''',
 ]
 
+# Only allow referencing env vars by name pattern, never actual values.
+# This matches import.meta.env.VITE_* references in source code,
+# NOT hardcoded values in .env files.
 regexes = [
-  # Env example files documenting variable names (not real secrets)
-  '''VITE_ADSTERRA_PUBLISHER_ID=5657609''',
-  # Game code referencing env vars by name
   '''import\.meta\.env\.VITE_''',
 ]
