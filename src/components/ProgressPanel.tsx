@@ -385,12 +385,12 @@ export default function ProgressPanel({ lang, uiState, onClose }: ProgressPanelP
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <span className={`font-bold ${isUnlocked ? 'text-stone-100' : 'text-stone-500'}`}>
-                            {t[lang][achievement.titleKey as keyof TranslationSet] || achievement.id}
+                            {String(t[lang][achievement.titleKey as keyof TranslationSet] || achievement.id)}
                           </span>
                           {isUnlocked && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
                         </div>
                         <p className="text-xs text-stone-500 mt-1">
-                          {t[lang][achievement.descriptionKey as keyof TranslationSet] || 'Achievement description'}
+                          {String(t[lang][achievement.descriptionKey as keyof TranslationSet] || 'Achievement description')}
                         </p>
                       </div>
                     </div>

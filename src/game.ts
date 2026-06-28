@@ -1162,7 +1162,7 @@ export const handleCanvasClick = (state: GameState, x: number, y: number, canvas
   }
 };
 
-export const getUpgradeCost = (type: string, level: number, state: GameState) => {
+export const getUpgradeCost = (type: string, level: number, _state: GameState) => {
   // Economy stability: upgradeCost = baseCost * (growthRate ^ level)
   switch (type) {
     case 'damage': return 10 * Math.pow(1.15, level - 1);

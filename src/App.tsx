@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { GameState, createInitialState, updateGame, drawGame, handleCanvasClick, buyUpgrade, getUpgradeCostTotal, INTERNAL_W, INTERNAL_H, resetGame, getEvolutionSpeed } from './game';
+import { GameState, createInitialState, updateGame, drawGame, handleCanvasClick, buyUpgrade, getUpgradeCostTotal, resetGame, getEvolutionSpeed } from './game';
 import { SAVE_INTERVAL, UI_SYNC_INTERVAL } from './config/constants';
 import { saveGame, loadGame, exportSave, importSave, resetSave } from './saveSystem';
 import { formatNumber } from './utils/number';
@@ -8,7 +8,7 @@ import { getAudioSettings, updateAudioSettings, AudioSettings } from './audio';
 import MoringaInfo from './components/MoringaInfo';
 import { initGlobalAds } from './ads/adsterra';
 import AdsterraAd from './components/AdsterraAd';
-import { Zap, Sword, Clock, MousePointer2, Sparkles, ShieldAlert, FastForward, Leaf, Sun, Wind, Skull, Save, Download, RotateCcw, Globe, X, ShoppingCart, Settings, Trophy } from 'lucide-react';
+import { Zap, Sword, Clock, MousePointer2, Sparkles, ShieldAlert, FastForward, Leaf, Sun, Wind, Skull, Save, RotateCcw, Globe, X, ShoppingCart, Settings, Trophy } from 'lucide-react';
 import { t, Language, languages } from './i18n';
 import UpgradeButton from './components/UpgradeButton';
 import AbilityButton from './components/AbilityButton';
@@ -61,7 +61,7 @@ export default function App() {
   const [importError, setImportError] = useState('');
   const [copySuccess, setCopySuccess] = useState(false);
   const [audio, setAudio] = useState<AudioSettings>(getAudioSettings());
-  const [confirmModal, setConfirmModal] = useState<{ open: boolean; title: string; message: string; onConfirm: () => void; onCancel: () => void; confirmText?: string; cancelText?: string; destructive?: boolean; lang: Language }>({ open: false, title: '', message: '', onConfirm: () => {}, onCancel: () => {} });
+  const [confirmModal, setConfirmModal] = useState<{ open: boolean; title: string; message: string; onConfirm: () => void; onCancel: () => void; confirmText?: string; cancelText?: string; destructive?: boolean; lang: Language }>({ open: false, title: '', message: '', onConfirm: () => {}, onCancel: () => {}, lang: 'en' });
   const [showProgressPanel, setShowProgressPanel] = useState(false);
   const langRef = useRef(lang);
   langRef.current = lang;
@@ -100,9 +100,8 @@ export default function App() {
     resize();
 
     let animationFrameId: number;
-    let lastTime = performance.now();
 
-    const render = (time: number) => {
+    const render = (_time: number) => {
       fpsCounter.tick();
       // updateGame handles dt internally using Date.now() for background progression
       updateGame(gameState.current, 0);
@@ -187,7 +186,7 @@ export default function App() {
   };
 
   const getCostInfo = (type: string, level: number) => {
-    return getUpgradeCostTotal(type, level, uiState, buyMultiplier);
+    return getUpgradeCostTotal(type, level, gameState.current, buyMultiplier);
   };
 
   const handleManualSave = () => {
@@ -318,7 +317,7 @@ export default function App() {
       return uiState.upgrades.grassLevel;
     } else if (['damage', 'speed', 'click', 'energy', 'evolutionSpeed'].includes(id)) {
       const key = `${id}Level` as keyof typeof uiState.upgrades;
-      return uiState.upgrades[key];
+      return uiState.upgrades[key] as number;
     }
     return 0;
   };
@@ -883,7 +882,7 @@ export default function App() {
       </div>
 
       {/* Moringa Info Section */}
-      <MoringaInfo lang={lang} />
+      <MoringaInfo />
 
       {/* Toast Notifications */}
       <ToastContainer />

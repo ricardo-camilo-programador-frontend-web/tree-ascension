@@ -11,11 +11,11 @@ interface AdsterraAdProps {
   fallback?: React.ReactNode;
 }
 
-export default function AdsterraAd({ 
-  zone, 
-  format = 'display_banner', 
-  width = 300, 
-  height = 250, 
+export default function AdsterraAd({
+  zone,
+  format: _format = 'display_banner',
+  width = 300,
+  height = 250,
   className = '',
   lazy = false,
   fallback

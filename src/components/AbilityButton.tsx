@@ -72,7 +72,7 @@ export default function AbilityButton({
  }
  }}
  >
- {React.cloneElement(icon as React.ReactElement, { className: 'w-5 h-5 drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]' })}
+ {React.cloneElement(icon as React.ReactElement<{ className?: string }>, { className: 'w-5 h-5 drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]' })}
  </div>
  <div className="font-bold text-stone-100 text-base leading-tight group-hover:text-white transition-colors">{title}</div>
  </div>

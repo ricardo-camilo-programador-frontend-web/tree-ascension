@@ -30,7 +30,7 @@ let adBlockDetected = false;
 export const detectAdBlock = async (): Promise<boolean> => {
   if (adBlockDetected) return true;
   try {
-    const response = await fetch('https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js', {
+    await fetch('https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js', {
       method: 'HEAD',
       mode: 'no-cors',
       cache: 'no-store',
