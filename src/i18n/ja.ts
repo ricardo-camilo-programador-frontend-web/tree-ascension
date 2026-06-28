@@ -139,7 +139,7 @@ export const ja: TranslationSet = {
     curiosity3: '痩せた土地や乾燥した気候でも急速に成長します。',
     footer: '© 2026 モリンガ・オレイフェラ – 教育・科学情報',
   },
-  resets: 'Resets',
+  resets: 'リセット',
   progressTitle: 'Progress',
   progressScore: 'Progress Score',
   statistics: 'Statistics',

@@ -140,7 +140,7 @@ export const de: TranslationSet = {
     curiosity3: 'Wächst schnell auch in armen Böden und ariden Klimazonen.',
     footer: '© 2026 Moringa Oleifera – Bildungs- und wissenschaftliche Informationen.',
   },
-  resets: 'Resets',
+  resets: 'Zurücksetzungen',
   progressTitle: 'Progress',
   progressScore: 'Progress Score',
   statistics: 'Statistics',

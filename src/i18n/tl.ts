@@ -144,7 +144,7 @@ export const tl: TranslationSet = {
     curiosity3: 'Mabilis lumaki kahit sa mahihirap na lupa at tuyong klima.',
     footer: '© 2026 Moringa Oleifera – Impormasyong Pang-edukasyon at Pang-agham.',
   },
-  resets: 'Resets',
+  resets: 'Mga Pag-reset',
   progressTitle: 'Progress',
   progressScore: 'Progress Score',
   statistics: 'Statistics',

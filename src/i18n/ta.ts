@@ -138,7 +138,7 @@ export const ta: TranslationSet = {
     curiosity3: 'வளம் குறைந்த மண் மற்றும் வறண்ட காலநிலையிலும் வேகமாக வளரும்.',
     footer: '© 2026 முருங்கை (மோரிங்கா ஒலிஃபெரா) – கல்வித் தகவல்.',
   },
-  resets: 'Resets',
+  resets: 'மீட்டமைப்பு',
   progressTitle: 'Progress',
   progressScore: 'Progress Score',
   statistics: 'Statistics',

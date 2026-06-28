@@ -139,7 +139,7 @@ export const tr: TranslationSet = {
     curiosity3: 'Zayıf topraklarda ve kurak iklimlerde bile hızlı büyür.',
     footer: '© 2026 Moringa Oleifera – Eğitici ve Bilimsel Bilgiler.',
   },
-  resets: 'Resets',
+  resets: 'Sıfırlamalar',
   progressTitle: 'Progress',
   progressScore: 'Progress Score',
   statistics: 'Statistics',
