@@ -1,5 +1,12 @@
-import type { Language, Translations } from './types';
-export type { Language, Translations, TranslationSet, MoringaTranslations, EvolutionId } from './types';
+import type { Language, Translations } from './types'
+
+export type {
+  EvolutionId,
+  Language,
+  MoringaTranslations,
+  TranslationSet,
+  Translations,
+} from './types'
 
 export const languages: { code: Language; name: string }[] = [
   { code: 'en', name: 'English' },
@@ -22,28 +29,28 @@ export const languages: { code: Language; name: string }[] = [
   { code: 'yue', name: '粵語' },
   { code: 'vi', name: 'Tiếng Việt' },
   { code: 'tl', name: 'Tagalog' },
-];
+]
 
-import { en } from './en';
-import { zh } from './zh';
-import { hi } from './hi';
-import { es } from './es';
-import { fr } from './fr';
-import { ar } from './ar';
-import { bn } from './bn';
-import { ru } from './ru';
-import { pt } from './pt';
-import { ur } from './ur';
-import { id } from './id';
-import { de } from './de';
-import { ja } from './ja';
-import { mr } from './mr';
-import { te } from './te';
-import { tr } from './tr';
-import { ta } from './ta';
-import { yue } from './yue';
-import { vi } from './vi';
-import { tl } from './tl';
+import { ar } from './ar'
+import { bn } from './bn'
+import { de } from './de'
+import { en } from './en'
+import { es } from './es'
+import { fr } from './fr'
+import { hi } from './hi'
+import { id } from './id'
+import { ja } from './ja'
+import { mr } from './mr'
+import { pt } from './pt'
+import { ru } from './ru'
+import { ta } from './ta'
+import { te } from './te'
+import { tl } from './tl'
+import { tr } from './tr'
+import { ur } from './ur'
+import { vi } from './vi'
+import { yue } from './yue'
+import { zh } from './zh'
 
 export const t: Translations = {
   en,
@@ -66,4 +73,4 @@ export const t: Translations = {
   yue,
   vi,
   tl,
-};
+}

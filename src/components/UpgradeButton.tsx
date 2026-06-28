@@ -1,19 +1,19 @@
-import React from 'react';
-import { Zap } from 'lucide-react';
-import { Language, t } from '../i18n';
+import { Zap } from 'lucide-react'
+import React from 'react'
+import { type Language, t } from '../i18n'
 
 export interface UpgradeButtonProps {
-  icon: React.ReactNode;
-  title: string;
-  level: number;
-  cost: number;
-  count: number;
-  canAfford: boolean;
-  onClick: () => void;
-  onIconClick?: () => void;
-  formatNumber: (n: number) => string;
-  lang: Language;
-  colorClass: string;
+  icon: React.ReactNode
+  title: string
+  level: number
+  cost: number
+  count: number
+  canAfford: boolean
+  onClick: () => void
+  onIconClick?: () => void
+  formatNumber: (n: number) => string
+  lang: Language
+  colorClass: string
 }
 
 export default function UpgradeButton({
@@ -39,23 +39,29 @@ export default function UpgradeButton({
     >
       {/* Background Gradient */}
       {canAfford && (
-        <div className={`absolute inset-0 bg-gradient-to-br ${colorClass} opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none`} />
+        <div
+          className={`absolute inset-0 bg-gradient-to-br ${colorClass} opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none`}
+        />
       )}
 
       {/* Line 1: Icon + Name */}
       <div className="flex items-center gap-3 relative z-10 mb-2">
         <div
           className={`p-2 bg-stone-950 rounded-xl border border-stone-800 transition-all shadow-inner ${onIconClick ? 'cursor-pointer hover:bg-stone-800 hover:border-stone-600 hover:scale-110' : ''}`}
-          onClick={(e) => {
+          onClick={e => {
             if (onIconClick) {
-              e.stopPropagation();
-              onIconClick();
+              e.stopPropagation()
+              onIconClick()
             }
           }}
         >
-          {React.cloneElement(icon as React.ReactElement<{ className?: string }>, { className: 'w-5 h-5 drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]' })}
+          {React.cloneElement(icon as React.ReactElement<{ className?: string }>, {
+            className: 'w-5 h-5 drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]',
+          })}
         </div>
-        <div className="font-bold text-stone-100 text-base leading-tight group-hover:text-white transition-colors">{title}</div>
+        <div className="font-bold text-stone-100 text-base leading-tight group-hover:text-white transition-colors">
+          {title}
+        </div>
       </div>
 
       {/* Line 2: Level */}
@@ -73,14 +79,20 @@ export default function UpgradeButton({
             : 'bg-stone-900/50 border-stone-800 text-stone-500 cursor-not-allowed'
         }`}
       >
-        <span className="text-sm uppercase tracking-wider">{t[lang].upgrades} {count > 1 ? `x${count}` : ''}</span>
+        <span className="text-sm uppercase tracking-wider">
+          {t[lang].upgrades} {count > 1 ? `x${count}` : ''}
+        </span>
         <div className="flex items-center gap-1.5 bg-black/40 px-2 py-0.5 rounded-lg border border-black/50">
-          <Zap className={`w-3.5 h-3.5 ${canAfford ? 'text-yellow-400 fill-yellow-400/20' : 'text-stone-600'}`} />
-          <span className={`font-mono font-black text-sm ${canAfford ? 'text-yellow-400' : 'text-stone-500'}`}>
+          <Zap
+            className={`w-3.5 h-3.5 ${canAfford ? 'text-yellow-400 fill-yellow-400/20' : 'text-stone-600'}`}
+          />
+          <span
+            className={`font-mono font-black text-sm ${canAfford ? 'text-yellow-400' : 'text-stone-500'}`}
+          >
             {formatNumber(cost)}
           </span>
         </div>
       </button>
     </div>
-  );
+  )
 }
