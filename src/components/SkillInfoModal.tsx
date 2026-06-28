@@ -1,4 +1,4 @@
-import { X, Sparkles } from 'lucide-react';
+import { X } from 'lucide-react';
 import { t, Language } from '../i18n';
 
 export interface SkillInfoModalProps {

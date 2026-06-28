@@ -1,7 +1,7 @@
 import type { Zombie } from '../game';
 import { CANVAS_W } from '../config/constants';
 
-export function drawZombie(ctx: CanvasRenderingContext2D, z: Zombie, time: number, internalW: number = CANVAS_W): void {
+export function drawZombie(ctx: CanvasRenderingContext2D, z: Zombie, time: number, _internalW: number = CANVAS_W): void {
   ctx.save();
   ctx.translate(z.x, z.y);
 

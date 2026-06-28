@@ -1,5 +1,5 @@
 import React from 'react';
-import { Info, Globe, Zap, HeartPulse, Utensils, Coffee, AlertTriangle, Sparkles, Leaf, Droplets, FlaskConical, ShieldCheck } from 'lucide-react';
+import { Info, Globe, Zap, HeartPulse, Utensils, Coffee, AlertTriangle, Sparkles, Leaf, ShieldCheck } from 'lucide-react';
 
 const MoringaInfo: React.FC = () => {
   return (
