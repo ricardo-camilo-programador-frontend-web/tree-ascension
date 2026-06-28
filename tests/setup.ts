@@ -1,42 +1,57 @@
 import '@testing-library/jest-dom'
 
-// Canvas mock for game tests
+// Canvas mock for game tests — includes all methods used by rendering code
 HTMLCanvasElement.prototype.getContext = () =>
   ({
+    // Drawing methods
     fillRect: () => {},
+    strokeRect: () => {},
     clearRect: () => {},
+    drawImage: () => {},
+    putImageData: () => {},
     getImageData: (_x: number, _y: number, w: number, h: number) => ({
       data: new Uint8ClampedArray(w * h * 4),
     }),
-    putImageData: () => {},
     createImageData: () => ({ data: new Uint8ClampedArray(4) }),
-    setTransform: () => {},
-    drawImage: () => {},
-    save: () => {},
-    fillText: () => {},
-    restore: () => {},
+    // Path methods
     beginPath: () => {},
+    closePath: () => {},
     moveTo: () => {},
     lineTo: () => {},
-    closePath: () => {},
+    arc: () => {},
+    ellipse: () => {},
+    rect: () => {},
+    fill: () => {},
     stroke: () => {},
+    clip: () => {},
+    // Text
+    fillText: () => {},
+    strokeText: () => {},
+    measureText: () => ({ width: 0 }),
+    // Transform
+    save: () => {},
+    restore: () => {},
+    setTransform: () => {},
     translate: () => {},
     rotate: () => {},
     scale: () => {},
-    arc: () => {},
-    fill: () => {},
-    measureText: () => ({ width: 0 }),
+    // Gradients
     createLinearGradient: () => ({ addColorStop: () => {} }),
     createRadialGradient: () => ({ addColorStop: () => {} }),
-    rect: () => {},
-    clip: () => {},
-    setFillStyle: () => {},
-    setStrokeStyle: () => {},
-    setFont: () => {},
-    setLineWidth: () => {},
-    setGlobalAlpha: () => {},
-    setTextAlign: () => {},
-    setTextBaseline: () => {},
+    // Properties (writable via Proxy-like behavior)
+    fillStyle: '',
+    strokeStyle: '',
+    lineWidth: 1,
+    font: '10px sans-serif',
+    textAlign: 'start',
+    textBaseline: 'alphabetic',
+    globalAlpha: 1,
+    shadowColor: 'transparent',
+    shadowBlur: 0,
+    shadowOffsetX: 0,
+    shadowOffsetY: 0,
+    globalCompositeOperation: 'source-over',
+    imageSmoothingEnabled: true,
   }) as unknown as CanvasRenderingContext2D
 
 // localStorage mock with full Map-backed implementation
@@ -61,6 +76,13 @@ Object.defineProperty(globalThis, 'localStorage', {
 
 // Audio mock
 globalThis.Audio = class {
-  play() {}
+  src = ''
+  volume = 1
+  currentTime = 0
+  loop = false
+  play() {
+    return Promise.resolve()
+  }
   pause() {}
+  load() {}
 } as unknown as typeof Audio
