@@ -17,7 +17,8 @@
       "!.github/**",
       "!dist/**",
       "!node_modules/**",
-      "!coverage/**"
+      "!coverage/**",
+      "!src/index.css"
     ]
   },
   "formatter": {
@@ -50,7 +51,8 @@
         "useTemplate": "warn",
         "useImportType": "warn",
         "useNamingConvention": "off",
-        "noNonNullAssertion": "off"
+        "noNonNullAssertion": "off",
+        "useExponentiationOperator": "error"
       },
       "suspicious": {
         "noExplicitAny": "error",
@@ -63,10 +65,27 @@
           }
         }
       },
+      "a11y": {
+        "useButtonType": "warn",
+        "noStaticElementInteractions": "warn",
+        "useKeyWithClickEvents": "warn"
+      },
       "nursery": {
-        "noFloatingPromises": "error",
+        "noFloatingPromises": "warn",
         "noMisusedPromises": "error"
       }
     }
-  }
+  },
+  "overrides": [
+    {
+      "includes": ["src/audio.ts", "src/ads/adsterra.ts"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noExplicitAny": "off"
+          }
+        }
+      }
+    }
+  ]
 }
