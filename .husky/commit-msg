@@ -1,0 +1,29 @@
+#!/usr/bin/env sh
+set -e
+
+# Skip merge, revert, fixup, squash commits
+if [ -f .git/MERGE_MSG ]; then exit 0; fi
+if [ -f .git/SQUASH_MSG ]; then exit 0; fi
+
+# Skip fixup! and squash! commits (used in interactive rebase)
+head -1 "$1" | grep -qE '^(fixup|squash)! ' && exit 0
+
+# Gitmoji conventional commits: :emoji: type(scope)!: description
+# Supports: optional scope, optional ! (breaking change), Unicode in description
+commit_regex='^:[a-z_]+:[[:space:]]+[a-z]+(\([a-zA-Z0-9/_.-]+\))?(!)?: .+'
+error_msg="Abnormal commit message format!
+
+Expected format: :emoji_type:(scope): description
+Examples:
+  :sparkles: feat: add new game mechanic
+  :bug: fix(player): resolve damage calculation bug
+  :memo: docs: update README
+  :recycle: refactor(save): restructure save system
+  :boom: feat(api)!: breaking change to save format
+
+Run 'git commit --amend' to fix the message."
+
+if ! grep -qE "$commit_regex" "$1"; then
+  echo "$error_msg" >&2
+  exit 1
+fi

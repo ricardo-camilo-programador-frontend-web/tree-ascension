@@ -1,0 +1,51 @@
+name: PR Triage
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+
+jobs:
+  label:
+    name: Auto-Label PR
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/labeler@v5
+        with:
+          configuration-path: .github/labeler.yml
+
+  risk-assessment:
+    name: Risk Assessment
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Count changed lines
+        id: count
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          LINES=$(git diff --numstat "origin/${BASE_REF}..." | awk '{added+=$1; deleted+=$2} END {print added+deleted}')
+          echo "total=$LINES" >> $GITHUB_OUTPUT
+      - name: Apply risk label
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          TOTAL_LINES: ${{ steps.count.outputs.total }}
+        run: |
+          LINES="$TOTAL_LINES"
+          LABEL="risk:low"
+          if [ "$LINES" -gt 500 ]; then LABEL="risk:high"
+          elif [ "$LINES" -gt 200 ]; then LABEL="risk:medium"
+          fi
+          # Remove old risk labels
+          gh issue edit "$PR_NUMBER" --remove-label "risk:low,risk:medium,risk:high" 2>/dev/null || true
+          # Apply risk + size labels
+          SIZE=$(echo "$LINES" | awk '{if($1<50)print"XS";else if($1<200)print"S";else if($1<500)print"M";else if($1<1000)print"L";else print"XL"}')
+          gh issue edit "$PR_NUMBER" --add-label "$LABEL,size:$SIZE"
