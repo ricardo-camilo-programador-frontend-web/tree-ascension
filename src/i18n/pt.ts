@@ -145,7 +145,7 @@ export const pt: TranslationSet = {
   currentResets: 'Resets Atuais',
   startingEnergy: 'Energia Inicial Após Reset',
   resetYourProgress: 'Resetar seu progresso e começar novamente com bônus permanentes.',
-  resets: 'Resets',
+  resets: 'Reinícios',
   progressTitle: 'Progresso',
   progressScore: 'Pontuação',
   statistics: 'Estatísticas',
