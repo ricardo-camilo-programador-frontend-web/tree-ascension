@@ -137,7 +137,7 @@ export const hi: TranslationSet = {
     curiosity3: 'खराब मिट्टी और शुष्क जलवायु में भी तेजी से बढ़ता है।',
     footer: '© 2026 मोरिंगा ओलिफेरा - शैक्षिक जानकारी।',
   },
-  resets: 'Resets',
+  resets: 'रीसेट',
   progressTitle: 'Progress',
   progressScore: 'Progress Score',
   statistics: 'Statistics',

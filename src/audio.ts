@@ -112,7 +112,9 @@ export const playDeathSound = () => {
     gain.connect(ctx.destination)
     osc.start()
     osc.stop(ctx.currentTime + 0.3)
-  } catch (_e) {}
+  } catch {
+    // Expected: AudioContext may not be available in test environments
+  }
 }
 export const playSunSound = () => {
   playTone(600, 'sine', 0.1, 0.5)
