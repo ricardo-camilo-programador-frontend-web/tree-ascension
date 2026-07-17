@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "clean": "rm -rf dist coverage",
     "type-check": "tsc --noEmit",
-    "lint": "npm run type-check && npm run biome:check && npm run eslint",
+    "lint": "pnpm run type-check && pnpm run biome:check && pnpm run eslint",
     "biome:check": "biome check src/",
     "biome:fix": "biome check --write src/",
     "eslint": "eslint src/",
@@ -60,6 +60,11 @@
     ],
     "*.{json,css,md}": [
       "biome check --write"
+    ]
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
     ]
   }
 }
