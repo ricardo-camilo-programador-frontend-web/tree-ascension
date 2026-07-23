@@ -1,0 +1,11 @@
+# Default owner
+* @ricardo-camilo-programador-frontend-web
+
+# Game logic
+/src/game.ts @ricardo-camilo-programador-frontend-web
+
+# Save system
+/src/saveSystem.ts @ricardo-camilo-programador-frontend-web
+
+# CI/CD
+/.github/ @ricardo-camilo-programador-frontend-web

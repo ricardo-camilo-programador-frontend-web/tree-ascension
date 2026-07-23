@@ -1,0 +1,6 @@
+#!/usr/bin/env sh
+set -e
+
+# Run lint-staged (Biome + ESLint on staged files only)
+# Use local binary for speed (avoids npx resolution overhead)
+./node_modules/.bin/lint-staged

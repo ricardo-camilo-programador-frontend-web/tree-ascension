@@ -1,0 +1,4 @@
+{
+  "ignore": ["src/audio.ts", "src/ads/adsterra.ts"],
+  "ignoreDependencies": ["autoprefixer", "@types/node"]
+}
