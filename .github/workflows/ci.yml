@@ -92,6 +92,7 @@ jobs:
     name: SonarQube Analysis
     runs-on: ubuntu-latest
     needs: [validate]
+    if: ${{ vars.SONAR_ENABLED == 'true' }}
     continue-on-error: true
     permissions:
       contents: read
