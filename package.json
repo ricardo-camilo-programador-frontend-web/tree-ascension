@@ -55,11 +55,11 @@
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": [
-      "biome check --write",
+      "biome check --write --no-errors-on-unmatched",
       "eslint --fix"
     ],
     "*.{json,css,md}": [
-      "biome check --write"
+      "biome check --write --no-errors-on-unmatched"
     ]
   },
   "pnpm": {
