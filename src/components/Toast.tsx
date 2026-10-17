@@ -78,7 +78,7 @@ function ToastItem({ toast }: { toast: Toast }) {
       <span className="text-sm font-medium flex-1">{toast.message}</span>
       <button
         onClick={handleDismiss}
-        className="text-stone-500 hover:text-white transition-colors p-0.5 flex-shrink-0"
+        className="text-stone-400 hover:text-white transition-colors p-0.5 flex-shrink-0"
         aria-label="Dismiss notification"
       >
         <X className="w-3.5 h-3.5" />

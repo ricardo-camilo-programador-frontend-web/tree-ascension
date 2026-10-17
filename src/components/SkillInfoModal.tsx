@@ -44,28 +44,28 @@ export default function SkillInfoModal({
 
         <div className="space-y-4 text-stone-300">
           <div className="flex justify-between border-b border-stone-800 pb-2">
-            <span className="text-stone-500">{t[lang].level}</span>
+            <span className="text-stone-400">{t[lang].level}</span>
             <span className="font-bold">{getSkillLevel(skillId)}</span>
           </div>
 
           <div className="flex justify-between border-b border-stone-800 pb-2">
-            <span className="text-stone-500">{t[lang].effect}</span>
+            <span className="text-stone-400">{t[lang].effect}</span>
             <span className="font-bold">{getSkillEffect(skillId)}</span>
           </div>
 
           <div className="flex justify-between border-b border-stone-800 pb-2">
-            <span className="text-stone-500">{t[lang].cooldown}</span>
+            <span className="text-stone-400">{t[lang].cooldown}</span>
             <span className="font-bold">{getSkillCooldown(skillId)}s</span>
           </div>
 
           <div>
-            <h3 className="text-stone-500 mb-1">{t[lang].description}</h3>
+            <h3 className="text-stone-400 mb-1">{t[lang].description}</h3>
             <p className="text-sm">{getSkillDescription(skillId)}</p>
           </div>
 
           {getSkillEvolutions(skillId).length > 0 && (
             <div>
-              <h3 className="text-stone-500 mb-1">{t[lang].unlockedEvolutions}</h3>
+              <h3 className="text-stone-400 mb-1">{t[lang].unlockedEvolutions}</h3>
               <ul className="list-disc list-inside text-sm text-emerald-300">
                 {getSkillEvolutions(skillId).map((evo: string) => (
                   <li key={evo}>{formatEvolutionName(evo)}</li>

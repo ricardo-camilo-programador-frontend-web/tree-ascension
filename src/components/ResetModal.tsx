@@ -19,13 +19,13 @@ export default function ResetModal({ resets, onCancel, onConfirm, lang }: ResetM
 
         <div className="bg-stone-950 rounded-xl p-4 mb-8 border border-stone-800 space-y-3">
           <div className="flex justify-between items-center border-b border-stone-800 pb-2">
-            <span className="text-stone-500 font-bold uppercase text-xs tracking-wider">
+            <span className="text-stone-400 font-bold uppercase text-xs tracking-wider">
               {t[lang].currentResets}
             </span>
             <span className="text-xl font-mono font-bold text-white">{resets}</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-stone-500 font-bold uppercase text-xs tracking-wider">
+            <span className="text-stone-400 font-bold uppercase text-xs tracking-wider">
               {t[lang].startingEnergy}
             </span>
             <span className="text-xl font-mono font-bold text-yellow-400">

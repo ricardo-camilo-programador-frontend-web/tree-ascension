@@ -344,13 +344,13 @@ export default function ProgressPanel({ lang, uiState, onClose }: ProgressPanelP
             </h3>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               <div className="bg-stone-950 rounded-xl p-4 border border-stone-800">
-                <div className="text-xs text-stone-500 uppercase tracking-wider mb-1">
+                <div className="text-xs text-stone-400 uppercase tracking-wider mb-1">
                   {t[lang].wave}
                 </div>
                 <div className="text-xl font-black text-stone-200">{uiState.wave}</div>
               </div>
               <div className="bg-stone-950 rounded-xl p-4 border border-stone-800">
-                <div className="text-xs text-stone-500 uppercase tracking-wider mb-1">
+                <div className="text-xs text-stone-400 uppercase tracking-wider mb-1">
                   {t[lang].plantLevel}
                 </div>
                 <div className="text-xl font-black text-emerald-400">
@@ -358,13 +358,13 @@ export default function ProgressPanel({ lang, uiState, onClose }: ProgressPanelP
                 </div>
               </div>
               <div className="bg-stone-950 rounded-xl p-4 border border-stone-800">
-                <div className="text-xs text-stone-500 uppercase tracking-wider mb-1">
+                <div className="text-xs text-stone-400 uppercase tracking-wider mb-1">
                   {t[lang].resets}
                 </div>
                 <div className="text-xl font-black text-orange-400">{uiState.resets}</div>
               </div>
               <div className="bg-stone-950 rounded-xl p-4 border border-stone-800">
-                <div className="text-xs text-stone-500 uppercase tracking-wider mb-1">
+                <div className="text-xs text-stone-400 uppercase tracking-wider mb-1">
                   {t[lang].energy || 'Energy'}
                 </div>
                 <div className="text-xl font-black text-yellow-400">
@@ -372,19 +372,19 @@ export default function ProgressPanel({ lang, uiState, onClose }: ProgressPanelP
                 </div>
               </div>
               <div className="bg-stone-950 rounded-xl p-4 border border-stone-800">
-                <div className="text-xs text-stone-500 uppercase tracking-wider mb-1">
+                <div className="text-xs text-stone-400 uppercase tracking-wider mb-1">
                   {t[lang].totalUpgrades || 'Total Upgrades'}
                 </div>
                 <div className="text-xl font-black text-blue-400">{totalUpgrades}</div>
               </div>
               <div className="bg-stone-950 rounded-xl p-4 border border-stone-800">
-                <div className="text-xs text-stone-500 uppercase tracking-wider mb-1">
+                <div className="text-xs text-stone-400 uppercase tracking-wider mb-1">
                   {t[lang].evolutions || 'Evolutions'}
                 </div>
                 <div className="text-xl font-black text-purple-400">{totalEvolutions}</div>
               </div>
               <div className="bg-stone-950 rounded-xl p-4 border border-stone-800">
-                <div className="text-xs text-stone-500 uppercase tracking-wider mb-1">
+                <div className="text-xs text-stone-400 uppercase tracking-wider mb-1">
                   {t[lang].damageMultiplier || 'Damage Mult'}
                 </div>
                 <div className="text-xl font-black text-red-400">
@@ -392,7 +392,7 @@ export default function ProgressPanel({ lang, uiState, onClose }: ProgressPanelP
                 </div>
               </div>
               <div className="bg-stone-950 rounded-xl p-4 border border-stone-800">
-                <div className="text-xs text-stone-500 uppercase tracking-wider mb-1">
+                <div className="text-xs text-stone-400 uppercase tracking-wider mb-1">
                   {t[lang].speedMultiplier || 'Speed Mult'}
                 </div>
                 <div className="text-xl font-black text-cyan-400">
@@ -400,7 +400,7 @@ export default function ProgressPanel({ lang, uiState, onClose }: ProgressPanelP
                 </div>
               </div>
               <div className="bg-stone-950 rounded-xl p-4 border border-stone-800">
-                <div className="text-xs text-stone-500 uppercase tracking-wider mb-1">
+                <div className="text-xs text-stone-400 uppercase tracking-wider mb-1">
                   {t[lang].playTime || 'Play Time'}
                 </div>
                 <div className="text-xl font-black text-stone-200">
@@ -436,13 +436,13 @@ export default function ProgressPanel({ lang, uiState, onClose }: ProgressPanelP
                         {isUnlocked ? (
                           achievement.icon
                         ) : (
-                          <Lock className="w-5 h-5 text-stone-600" />
+                          <Lock className="w-5 h-5 text-stone-400" />
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <span
-                            className={`font-bold ${isUnlocked ? 'text-stone-100' : 'text-stone-500'}`}
+                            className={`font-bold ${isUnlocked ? 'text-stone-100' : 'text-stone-400'}`}
                           >
                             {String(
                               t[lang][achievement.titleKey as keyof TranslationSet]
@@ -451,7 +451,7 @@ export default function ProgressPanel({ lang, uiState, onClose }: ProgressPanelP
                           </span>
                           {isUnlocked && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
                         </div>
-                        <p className="text-xs text-stone-500 mt-1">
+                        <p className="text-xs text-stone-400 mt-1">
                           {String(
                             t[lang][achievement.descriptionKey as keyof TranslationSet]
                               || 'Achievement description',
@@ -478,7 +478,7 @@ export default function ProgressPanel({ lang, uiState, onClose }: ProgressPanelP
                     <span className="text-stone-300 font-bold">
                       {t[lang].milestoneWave50 || 'Reach Wave 50'}
                     </span>
-                    <span className="text-stone-500 text-sm">{uiState.wave}/50</span>
+                    <span className="text-stone-400 text-sm">{uiState.wave}/50</span>
                   </div>
                   <div className="h-2 bg-stone-900 rounded-full overflow-hidden">
                     <div
@@ -494,7 +494,7 @@ export default function ProgressPanel({ lang, uiState, onClose }: ProgressPanelP
                     <span className="text-stone-300 font-bold">
                       {t[lang].milestonePlant50 || 'Reach Plant Level 50'}
                     </span>
-                    <span className="text-stone-500 text-sm">{uiState.plant.level}/50</span>
+                    <span className="text-stone-400 text-sm">{uiState.plant.level}/50</span>
                   </div>
                   <div className="h-2 bg-stone-900 rounded-full overflow-hidden">
                     <div
@@ -510,9 +510,9 @@ export default function ProgressPanel({ lang, uiState, onClose }: ProgressPanelP
                     <span className="text-stone-300 font-bold">
                       {t[lang].milestoneFirstReset || 'First Prestige Reset'}
                     </span>
-                    <span className="text-stone-500 text-sm">{t[lang].locked || 'Locked'}</span>
+                    <span className="text-stone-400 text-sm">{t[lang].locked || 'Locked'}</span>
                   </div>
-                  <p className="text-xs text-stone-500">
+                  <p className="text-xs text-stone-400">
                     {t[lang].milestoneFirstResetDesc || 'Reach Wave 50 or Plant Level 50 to unlock'}
                   </p>
                 </div>
@@ -523,7 +523,7 @@ export default function ProgressPanel({ lang, uiState, onClose }: ProgressPanelP
                     <span className="text-stone-300 font-bold">
                       {t[lang].milestoneAllAchievements || 'Complete All Achievements'}
                     </span>
-                    <span className="text-stone-500 text-sm">
+                    <span className="text-stone-400 text-sm">
                       {unlockedAchievements.length}/{achievements.length}
                     </span>
                   </div>

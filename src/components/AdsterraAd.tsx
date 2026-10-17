@@ -117,7 +117,7 @@ export default function AdsterraAd({
         fallback ? (
           fallback
         ) : (
-          <div className="text-stone-500 text-xs text-center p-4 flex flex-col items-center justify-center w-full h-full">
+          <div className="text-stone-400 text-xs text-center p-4 flex flex-col items-center justify-center w-full h-full">
             <span className="opacity-70">Advertisement</span>
             <span className="text-[10px] opacity-40 mt-1">
               (Please disable AdBlock to support us)
