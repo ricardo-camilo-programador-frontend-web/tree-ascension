@@ -516,20 +516,20 @@ export default function App() {
                 {formatNumber(uiState.energy)}
               </span>
             </div>
-            <div className="hidden md:flex items-center gap-1 text-xs text-stone-500 font-mono">
+            <div className="hidden md:flex items-center gap-1 text-xs text-stone-400 font-mono">
               <span>FPS:</span>
               <span className={fps < 30 ? 'text-red-500' : 'text-emerald-500'}>{fps}</span>
             </div>
           </div>
           <div className="flex items-center gap-3 md:gap-6">
             <div className="text-center hidden xs:block">
-              <div className="text-[9px] md:text-xs text-stone-500 font-bold uppercase tracking-wider">
+              <div className="text-[9px] md:text-xs text-stone-400 font-bold uppercase tracking-wider">
                 {t[lang].wave}
               </div>
               <div className="text-base md:text-xl font-black text-stone-200">{uiState.wave}</div>
             </div>
             <div className="text-center">
-              <div className="text-[9px] md:text-xs text-stone-500 font-bold uppercase tracking-wider">
+              <div className="text-[9px] md:text-xs text-stone-400 font-bold uppercase tracking-wider">
                 HP
               </div>
               <div className="text-base md:text-xl font-black text-red-500">
@@ -537,7 +537,7 @@ export default function App() {
               </div>
             </div>
             <div className="text-center">
-              <div className="text-[9px] md:text-xs text-stone-500 font-bold uppercase tracking-wider">
+              <div className="text-[9px] md:text-xs text-stone-400 font-bold uppercase tracking-wider">
                 {t[lang].plantLevel}
               </div>
               <div className="text-base md:text-xl font-black text-emerald-400">
@@ -774,7 +774,7 @@ export default function App() {
                       className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${
                         buyMultiplier === (mult === 'MAX' ? 'MAX' : parseInt(mult, 10))
                           ? 'bg-emerald-600 text-white shadow-md'
-                          : 'text-stone-500 hover:text-stone-300 hover:bg-stone-900'
+                          : 'text-stone-400 hover:text-stone-300 hover:bg-stone-900'
                       }`}
                     >
                       x{mult}
@@ -896,7 +896,7 @@ export default function App() {
 
                 {/* Abilities */}
                 <div>
-                  <h3 className="text-sm font-bold text-stone-500 uppercase tracking-wider mb-3">
+                  <h3 className="text-sm font-bold text-stone-400 uppercase tracking-wider mb-3">
                     {t[lang].abilities}
                   </h3>
                   <div className="grid grid-cols-1 gap-3">
@@ -986,7 +986,7 @@ export default function App() {
         </main>
 
         {/* Footer */}
-        <footer className="bg-stone-950 border-t border-stone-900 p-2 text-center text-[10px] text-stone-600">
+        <footer className="bg-stone-950 border-t border-stone-900 p-2 text-center text-[10px] text-stone-400">
           {t[lang].developedBy}{' '}
           <a
             href="https://github.com/ricardo-camilo-programador-frontend-web"

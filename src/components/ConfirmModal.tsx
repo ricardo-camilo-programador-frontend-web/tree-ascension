@@ -123,7 +123,7 @@ export default function ConfirmModal({
           </h2>
           <button
             onClick={() => onCancelRef.current()}
-            className="text-stone-500 hover:text-white transition-colors"
+            className="text-stone-400 hover:text-white transition-colors"
             aria-label={t[lang].closeModal}
           >
             <X className="w-5 h-5" />
