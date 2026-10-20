@@ -66,7 +66,7 @@ export default function SettingsModal({
           <h2 className="text-2xl font-black text-stone-200 uppercase tracking-wider">
             {t[lang].options}
           </h2>
-          <button onClick={onClose} className="text-stone-500 hover:text-white">
+          <button onClick={onClose} className="text-stone-400 hover:text-white">
             <X className="w-6 h-6" />
           </button>
         </div>
@@ -84,7 +84,7 @@ export default function SettingsModal({
               </button>
             </div>
             <div className="space-y-2">
-              <div className="flex justify-between text-xs text-stone-500 font-bold uppercase">
+              <div className="flex justify-between text-xs text-stone-400 font-bold uppercase">
                 <span>{t[lang].volume}</span>
                 <span>{Math.round(audio.volume * 100)}%</span>
               </div>
@@ -104,7 +104,7 @@ export default function SettingsModal({
           <div className="flex items-center justify-between p-4 bg-stone-950 rounded-xl border border-stone-800">
             <div>
               <div className="font-bold text-stone-300">{t[lang].lowPerformance}</div>
-              <div className="text-xs text-stone-500">{t[lang].reducesVisualEffects}</div>
+              <div className="text-xs text-stone-400">{t[lang].reducesVisualEffects}</div>
             </div>
             <button
               onClick={onTogglePerformance}
@@ -121,7 +121,7 @@ export default function SettingsModal({
           <div className="flex items-center justify-between p-4 bg-stone-950 rounded-xl border border-stone-800">
             <div>
               <div className="font-bold text-stone-300">{t[lang].manualSave}</div>
-              <div className="text-xs text-stone-500">{t[lang].saveProgressImmediately}</div>
+              <div className="text-xs text-stone-400">{t[lang].saveProgressImmediately}</div>
             </div>
             <button
               onClick={onManualSave}
@@ -136,7 +136,7 @@ export default function SettingsModal({
             <div className="flex items-center justify-between mb-3">
               <div>
                 <div className="font-bold text-stone-300">{t[lang].exportSave}</div>
-                <div className="text-xs text-stone-500">{t[lang].getSaveCode}</div>
+                <div className="text-xs text-stone-400">{t[lang].getSaveCode}</div>
               </div>
               <button
                 onClick={onExport}
@@ -171,7 +171,7 @@ export default function SettingsModal({
           <div className="p-4 bg-stone-950 rounded-xl border border-stone-800">
             <div className="mb-3">
               <div className="font-bold text-stone-300">{t[lang].importSave}</div>
-              <div className="text-xs text-stone-500">{t[lang].pasteSaveCode}</div>
+              <div className="text-xs text-stone-400">{t[lang].pasteSaveCode}</div>
             </div>
             <div className="flex gap-2">
               <input

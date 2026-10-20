@@ -185,7 +185,7 @@ const MoringaInfo: React.FC = () => {
             ].map((item, i) => (
               <div key={i} className="bg-stone-100 p-6 rounded-2xl border-l-4 border-emerald-500">
                 <h3 className="font-bold text-emerald-800 mb-2">{item.title}</h3>
-                <p className="text-stone-600 text-sm">{item.desc}</p>
+                <p className="text-stone-400 text-sm">{item.desc}</p>
               </div>
             ))}
           </div>
@@ -260,7 +260,7 @@ const MoringaInfo: React.FC = () => {
                 </div>
                 <div>
                   <h4 className="font-bold text-stone-800">Chá de Moringa</h4>
-                  <p className="text-stone-600">Infusão das folhas secas em água quente.</p>
+                  <p className="text-stone-400">Infusão das folhas secas em água quente.</p>
                 </div>
               </div>
               <div className="flex gap-4">
@@ -269,7 +269,7 @@ const MoringaInfo: React.FC = () => {
                 </div>
                 <div>
                   <h4 className="font-bold text-stone-800">Folhas Frescas</h4>
-                  <p className="text-stone-600">
+                  <p className="text-stone-400">
                     Podem ser refogadas ou usadas em saladas e omeletes.
                   </p>
                 </div>
@@ -280,7 +280,7 @@ const MoringaInfo: React.FC = () => {
                 </div>
                 <div>
                   <h4 className="font-bold text-stone-800">Pó em Vitaminas</h4>
-                  <p className="text-stone-600">Uma colher de chá em sucos ou smoothies.</p>
+                  <p className="text-stone-400">Uma colher de chá em sucos ou smoothies.</p>
                 </div>
               </div>
               <div className="flex gap-4">
@@ -289,7 +289,7 @@ const MoringaInfo: React.FC = () => {
                 </div>
                 <div>
                   <h4 className="font-bold text-stone-800">Cápsulas</h4>
-                  <p className="text-stone-600">Forma prática de suplementação concentrada.</p>
+                  <p className="text-stone-400">Forma prática de suplementação concentrada.</p>
                 </div>
               </div>
             </div>
@@ -364,7 +364,7 @@ const MoringaInfo: React.FC = () => {
 
         {/* Footer of Info Page */}
         <div className="text-center pt-8 border-t border-stone-200">
-          <p className="text-stone-500 text-sm">
+          <p className="text-stone-400 text-sm">
             © 2026 Moringa Oleifera – Informações Educativas e Científicas.
           </p>
         </div>

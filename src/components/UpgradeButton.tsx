@@ -65,7 +65,7 @@ export default function UpgradeButton({
       </div>
 
       {/* Line 2: Level */}
-      <div className="text-[10px] font-bold text-stone-500 uppercase tracking-widest relative z-10 mb-3 ml-1">
+      <div className="text-[10px] font-bold text-stone-400 uppercase tracking-widest relative z-10 mb-3 ml-1">
         {t[lang].level} {level}
       </div>
 
@@ -76,7 +76,7 @@ export default function UpgradeButton({
         className={`relative z-10 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border font-bold transition-all active:scale-[0.98] ${
           canAfford
             ? 'bg-emerald-600/20 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/30 hover:border-emerald-400/50'
-            : 'bg-stone-900/50 border-stone-800 text-stone-500 cursor-not-allowed'
+            : 'bg-stone-900/50 border-stone-800 text-stone-400 cursor-not-allowed'
         }`}
       >
         <span className="text-sm uppercase tracking-wider">
@@ -84,10 +84,10 @@ export default function UpgradeButton({
         </span>
         <div className="flex items-center gap-1.5 bg-black/40 px-2 py-0.5 rounded-lg border border-black/50">
           <Zap
-            className={`w-3.5 h-3.5 ${canAfford ? 'text-yellow-400 fill-yellow-400/20' : 'text-stone-600'}`}
+            className={`w-3.5 h-3.5 ${canAfford ? 'text-yellow-400 fill-yellow-400/20' : 'text-stone-400'}`}
           />
           <span
-            className={`font-mono font-black text-sm ${canAfford ? 'text-yellow-400' : 'text-stone-500'}`}
+            className={`font-mono font-black text-sm ${canAfford ? 'text-yellow-400' : 'text-stone-400'}`}
           >
             {formatNumber(cost)}
           </span>
