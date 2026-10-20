@@ -22,7 +22,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: TruffleHog OSS
-        uses: trufflesecurity/trufflehog@v3.88.0
+        uses: trufflesecurity/trufflehog@v3.96.0
         with:
           path: .
           extra: --regex --results=verified,unknown --entropy=False
