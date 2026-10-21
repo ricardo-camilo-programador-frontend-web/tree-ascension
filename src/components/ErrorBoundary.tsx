@@ -2,6 +2,7 @@ import { Component, type ErrorInfo, type ReactNode } from 'react'
 
 interface ErrorBoundaryProps {
   children: ReactNode
+  reload?: () => void
 }
 
 interface ErrorBoundaryState {
@@ -14,21 +15,25 @@ interface ErrorBoundaryState {
  * catches the error, renders a recovery screen and lets the player reload.
  */
 export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  state: ErrorBoundaryState = { hasError: false }
+  override state: ErrorBoundaryState = { hasError: false }
 
   static getDerivedStateFromError(): ErrorBoundaryState {
     return { hasError: true }
   }
 
-  componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
+  override componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     console.error('Unhandled error caught by ErrorBoundary:', error, errorInfo)
   }
 
   private handleReload = (): void => {
+    if (this.props.reload) {
+      this.props.reload()
+      return
+    }
     window.location.reload()
   }
 
-  render(): ReactNode {
+  override render(): ReactNode {
     if (this.state.hasError) {
       return (
         <div
@@ -37,8 +42,7 @@ export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
         >
           <h1 className="text-2xl font-bold">Something went wrong</h1>
           <p className="max-w-md text-stone-400">
-            The game hit an unexpected error. Your progress is saved locally — reload the page to
-            continue growing your tree.
+            The game hit an unexpected error. Reload the page to try again.
           </p>
           <button
             type="button"

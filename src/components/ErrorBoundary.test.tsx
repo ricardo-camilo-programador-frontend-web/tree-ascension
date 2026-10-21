@@ -18,24 +18,22 @@ describe('ErrorBoundary', () => {
       </ErrorBoundary>,
     )
 
-    expect(screen.getByText('healthy subtree')).toBeInTheDocument()
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(screen.getByText('healthy subtree')).toBeTruthy()
+    expect(screen.queryByRole('alert')).toBeNull()
   })
 
-  it('renders the recovery screen when a child crashes', async () => {
-    const reloadSpy = vi
-      .spyOn(window.location, 'reload')
-      .mockImplementation(() => undefined)
+  it('renders the recovery screen when a child crashes', () => {
+    const reloadSpy = vi.fn()
     const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
 
     render(
-      <ErrorBoundary>
+      <ErrorBoundary reload={reloadSpy}>
         <CrashingChild />
       </ErrorBoundary>,
     )
 
-    expect(screen.getByRole('alert')).toBeInTheDocument()
-    expect(screen.getByText('Something went wrong')).toBeInTheDocument()
+    expect(screen.getByRole('alert')).toBeTruthy()
+    expect(screen.getByText('Something went wrong')).toBeTruthy()
     expect(consoleErrorSpy).toHaveBeenCalled()
 
     fireEvent.click(screen.getByRole('button', { name: /reload game/i }))
