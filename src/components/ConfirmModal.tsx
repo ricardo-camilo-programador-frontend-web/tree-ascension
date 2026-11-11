@@ -100,52 +100,60 @@ export default function ConfirmModal({
   }
 
   return (
-    <div
-      className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/90 backdrop-blur-md"
-      onClick={handleBackdropClick}
-    >
+    <div className="fixed inset-0 z-[9998] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-[#07140f]/85 backdrop-blur-sm" aria-hidden="true" />
+      {closeOnBackdrop ? (
+        <button
+          type="button"
+          className="absolute inset-0 cursor-default"
+          aria-label={t[lang].closeModal}
+          onClick={handleBackdropClick}
+        />
+      ) : null}
       <div
         ref={modalRef}
         tabIndex={-1}
-        className="bg-stone-900 border border-stone-700 rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl"
-        onClick={e => e.stopPropagation()}
+        className="relative z-10 w-full max-w-md rounded-2xl border border-canopy-line bg-canopy-panel p-6 shadow-2xl"
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-title"
         aria-describedby="modal-description"
       >
-        <div className="flex justify-between items-start mb-4">
+        <div className="mb-4 flex items-start justify-between gap-3">
           <h2
             id="modal-title"
-            className={`text-xl font-black ${destructive ? 'text-red-400' : 'text-emerald-400'}`}
+            className={`font-display text-2xl ${destructive ? 'text-canopy-hp' : 'text-canopy-leaf'}`}
           >
             {title}
           </h2>
           <button
+            type="button"
             onClick={() => onCancelRef.current()}
-            className="text-stone-400 hover:text-white transition-colors"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-canopy-line text-canopy-muted hover:text-canopy-text"
             aria-label={t[lang].closeModal}
           >
-            <X className="w-5 h-5" />
+            <X className="h-5 w-5" />
           </button>
         </div>
-        <p id="modal-description" className="text-stone-300 text-sm mb-6 leading-relaxed">
+        <p id="modal-description" className="mb-6 text-sm leading-relaxed text-canopy-muted">
           {message}
         </p>
         <div className="flex gap-3">
           <button
+            type="button"
             ref={cancelBtnRef}
             onClick={() => onCancelRef.current()}
-            className="flex-1 py-2.5 rounded-xl font-bold bg-stone-800 text-stone-400 hover:bg-stone-700 hover:text-white transition-colors"
+            className="min-h-11 flex-1 rounded-xl border border-canopy-line bg-canopy-raised font-semibold text-canopy-text"
           >
             {resolvedCancelText}
           </button>
           <button
+            type="button"
             onClick={() => onConfirmRef.current()}
-            className={`flex-1 py-2.5 rounded-xl font-bold transition-all active:scale-95 ${
+            className={`min-h-11 flex-1 rounded-xl font-semibold ${
               destructive
-                ? 'bg-red-600 text-white hover:bg-red-500 shadow-lg shadow-red-900/20'
-                : 'bg-emerald-600 text-white hover:bg-emerald-500 shadow-lg shadow-emerald-900/20'
+                ? 'bg-canopy-danger text-canopy-on-danger'
+                : 'bg-canopy-leaf-btn text-canopy-on-leaf'
             }`}
           >
             {resolvedConfirmText}

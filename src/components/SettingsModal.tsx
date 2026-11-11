@@ -1,18 +1,9 @@
-import {
-  Check,
-  Copy,
-  Download,
-  Monitor,
-  Save,
-  Skull,
-  Upload,
-  Volume2,
-  VolumeX,
-  X,
-} from 'lucide-react'
+import { Check, Copy, Download, Monitor, Save, Skull, Upload, Volume2, VolumeX } from 'lucide-react'
 import type React from 'react'
 import type { AudioSettings } from '../audio'
 import { type Language, t } from '../i18n'
+import { Button } from './ui/Button'
+import { Modal } from './ui/Modal'
 
 export interface SettingsModalProps {
   audio: AudioSettings
@@ -53,161 +44,128 @@ export default function SettingsModal({
   onClose,
   lang,
 }: SettingsModalProps) {
+  const copy = t[lang]
   return (
-    <div
-      className="absolute inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md"
-      onClick={onClose}
-    >
-      <div
-        className="bg-stone-900 border border-stone-700 rounded-2xl p-6 max-w-lg w-full mx-4 shadow-2xl transform transition-all max-h-[90vh] overflow-y-auto"
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="flex justify-between items-center mb-6 border-b border-stone-800 pb-4 sticky top-0 bg-stone-900 z-10">
-          <h2 className="text-2xl font-black text-stone-200 uppercase tracking-wider">
-            {t[lang].options}
-          </h2>
-          <button onClick={onClose} className="text-stone-400 hover:text-white">
-            <X className="w-6 h-6" />
-          </button>
-        </div>
+    <Modal title={copy.options} onClose={onClose} closeLabel={copy.closeModal}>
+      <div className="space-y-3">
+        <section className="rounded-xl border border-canopy-line bg-canopy-bg p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="font-semibold text-canopy-text">{copy.audio}</h3>
+            <Button variant="secondary" onClick={onToggleMute} aria-pressed={audio.muted}>
+              {audio.muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+              {audio.muted ? copy.off : copy.on}
+            </Button>
+          </div>
+          <label
+            className="block text-xs font-semibold uppercase tracking-wide text-canopy-muted"
+            htmlFor="volume"
+          >
+            {copy.volume} · {Math.round(audio.volume * 100)}%
+          </label>
+          <input
+            id="volume"
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            value={audio.volume}
+            onChange={onVolumeChange}
+            className="mt-2 h-11 w-full accent-canopy-sap"
+          />
+        </section>
 
-        <div className="space-y-6">
-          {/* Audio Settings */}
-          <div className="p-4 bg-stone-950 rounded-xl border border-stone-800">
-            <div className="flex items-center justify-between mb-4">
-              <div className="font-bold text-stone-300">{t[lang].audio}</div>
-              <button
-                onClick={onToggleMute}
-                className={`p-2 rounded-lg transition-colors ${audio.muted ? 'bg-red-900/50 text-red-400' : 'bg-stone-800 text-stone-400'}`}
-              >
-                {audio.muted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-              </button>
+        <section className="flex items-center justify-between gap-3 rounded-xl border border-canopy-line bg-canopy-bg p-4">
+          <div>
+            <h3 className="font-semibold text-canopy-text">{copy.lowPerformance}</h3>
+            <p className="text-sm text-canopy-muted">{copy.reducesVisualEffects}</p>
+          </div>
+          <Button
+            variant={lowPerformance ? 'primary' : 'secondary'}
+            onClick={onTogglePerformance}
+            aria-pressed={lowPerformance}
+          >
+            <Monitor className="h-4 w-4" />
+            {lowPerformance ? copy.on : copy.off}
+          </Button>
+        </section>
+
+        <section className="flex items-center justify-between gap-3 rounded-xl border border-canopy-line bg-canopy-bg p-4">
+          <div>
+            <h3 className="font-semibold text-canopy-text">{copy.manualSave}</h3>
+            <p className="text-sm text-canopy-muted">{copy.saveProgressImmediately}</p>
+          </div>
+          <Button onClick={onManualSave}>
+            <Save className="h-4 w-4" /> {copy.save}
+          </Button>
+        </section>
+
+        <section className="rounded-xl border border-canopy-line bg-canopy-bg p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h3 className="font-semibold text-canopy-text">{copy.exportSave}</h3>
+              <p className="text-sm text-canopy-muted">{copy.getSaveCode}</p>
             </div>
-            <div className="space-y-2">
-              <div className="flex justify-between text-xs text-stone-400 font-bold uppercase">
-                <span>{t[lang].volume}</span>
-                <span>{Math.round(audio.volume * 100)}%</span>
-              </div>
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.01"
-                value={audio.volume}
-                onChange={onVolumeChange}
-                className="w-full h-2 bg-stone-800 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+            <Button variant="secondary" onClick={onExport}>
+              <Download className="h-4 w-4" /> {copy.generate}
+            </Button>
+          </div>
+          {exportString ? (
+            <div className="relative mt-3">
+              <textarea
+                readOnly
+                value={exportString}
+                aria-label={copy.exportSave}
+                className="h-24 w-full resize-none rounded-lg border border-canopy-line bg-canopy-panel p-2 pr-12 font-mono text-xs text-canopy-muted"
               />
-            </div>
-          </div>
-
-          {/* Performance Mode */}
-          <div className="flex items-center justify-between p-4 bg-stone-950 rounded-xl border border-stone-800">
-            <div>
-              <div className="font-bold text-stone-300">{t[lang].lowPerformance}</div>
-              <div className="text-xs text-stone-400">{t[lang].reducesVisualEffects}</div>
-            </div>
-            <button
-              onClick={onTogglePerformance}
-              className={`px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition-colors ${
-                lowPerformance ? 'bg-emerald-600 text-white' : 'bg-stone-800 text-stone-400'
-              }`}
-            >
-              <Monitor className="w-4 h-4" />
-              {lowPerformance ? t[lang].on : t[lang].off}
-            </button>
-          </div>
-
-          {/* Save Now */}
-          <div className="flex items-center justify-between p-4 bg-stone-950 rounded-xl border border-stone-800">
-            <div>
-              <div className="font-bold text-stone-300">{t[lang].manualSave}</div>
-              <div className="text-xs text-stone-400">{t[lang].saveProgressImmediately}</div>
-            </div>
-            <button
-              onClick={onManualSave}
-              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold flex items-center gap-2"
-            >
-              <Save className="w-4 h-4" /> {t[lang].save}
-            </button>
-          </div>
-
-          {/* Export */}
-          <div className="p-4 bg-stone-950 rounded-xl border border-stone-800">
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <div className="font-bold text-stone-300">{t[lang].exportSave}</div>
-                <div className="text-xs text-stone-400">{t[lang].getSaveCode}</div>
-              </div>
-              <button
-                onClick={onExport}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold flex items-center gap-2"
+              <Button
+                variant="ghost"
+                className="absolute top-2 right-2 min-h-10 px-2"
+                onClick={onCopyExport}
+                aria-label={copySuccess ? copy.saveSuccess : copy.exportSave}
               >
-                <Download className="w-4 h-4" /> {t[lang].generate}
-              </button>
+                {copySuccess ? (
+                  <Check className="h-4 w-4 text-canopy-leaf" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+              </Button>
             </div>
-            {exportString && (
-              <div className="mt-3 relative">
-                <textarea
-                  readOnly
-                  value={exportString}
-                  className="w-full h-24 bg-black border border-stone-700 rounded-lg p-2 text-xs font-mono text-stone-400 resize-none focus:outline-none focus:border-blue-500"
-                />
-                <button
-                  onClick={onCopyExport}
-                  className="absolute top-2 right-2 p-1.5 bg-stone-800 hover:bg-stone-700 rounded text-stone-300 transition-colors"
-                  title="Copy to clipboard"
-                >
-                  {copySuccess ? (
-                    <Check className="w-4 h-4 text-emerald-500" />
-                  ) : (
-                    <Copy className="w-4 h-4" />
-                  )}
-                </button>
-              </div>
-            )}
-          </div>
+          ) : null}
+        </section>
 
-          {/* Import */}
-          <div className="p-4 bg-stone-950 rounded-xl border border-stone-800">
-            <div className="mb-3">
-              <div className="font-bold text-stone-300">{t[lang].importSave}</div>
-              <div className="text-xs text-stone-400">{t[lang].pasteSaveCode}</div>
-            </div>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={importString}
-                onChange={e => onImportStringChange(e.target.value)}
-                placeholder={t[lang].pasteSaveString}
-                className="flex-1 bg-black border border-stone-700 rounded-lg px-3 py-2 text-sm text-stone-300 focus:outline-none focus:border-emerald-500"
-              />
-              <button
-                onClick={onImport}
-                className="px-4 py-2 bg-stone-800 hover:bg-stone-700 text-stone-300 rounded-lg font-bold flex items-center gap-2 border border-stone-700"
-              >
-                <Upload className="w-4 h-4" /> {t[lang].import}
-              </button>
-            </div>
-            {importError && (
-              <div className="mt-2 text-xs text-red-500 font-bold">{importError}</div>
-            )}
+        <section className="rounded-xl border border-canopy-line bg-canopy-bg p-4">
+          <h3 className="font-semibold text-canopy-text">{copy.importSave}</h3>
+          <p className="text-sm text-canopy-muted">{copy.pasteSaveCode}</p>
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+            <input
+              type="text"
+              value={importString}
+              onChange={event => onImportStringChange(event.target.value)}
+              placeholder={copy.pasteSaveString}
+              aria-label={copy.pasteSaveString}
+              className="min-h-11 flex-1 rounded-lg border border-canopy-line bg-canopy-panel px-3 text-sm text-canopy-text"
+            />
+            <Button variant="secondary" onClick={onImport}>
+              <Upload className="h-4 w-4" /> {copy.import}
+            </Button>
           </div>
+          {importError ? (
+            <p className="mt-2 text-sm font-semibold text-canopy-hp" role="alert">
+              {importError}
+            </p>
+          ) : null}
+        </section>
 
-          {/* Hard Reset */}
-          <div className="flex items-center justify-between p-4 bg-red-950/20 rounded-xl border border-red-900/30">
-            <div>
-              <div className="font-bold text-red-400">{t[lang].hardReset}</div>
-              <div className="text-xs text-red-500/70">{t[lang].wipeAllProgress}</div>
-            </div>
-            <button
-              onClick={onHardReset}
-              className="px-4 py-2 bg-red-900/50 hover:bg-red-800/50 text-red-400 border border-red-800 rounded-lg font-bold flex items-center gap-2"
-            >
-              <Skull className="w-4 h-4" /> {t[lang].wipeSave}
-            </button>
+        <section className="flex items-center justify-between gap-3 rounded-xl border border-canopy-danger/60 bg-canopy-danger/20 p-4">
+          <div>
+            <h3 className="font-semibold text-canopy-on-danger">{copy.hardReset}</h3>
+            <p className="text-sm text-canopy-hp">{copy.wipeAllProgress}</p>
           </div>
-        </div>
+          <Button variant="danger" onClick={onHardReset}>
+            <Skull className="h-4 w-4" /> {copy.wipeSave}
+          </Button>
+        </section>
       </div>
-    </div>
+    </Modal>
   )
 }

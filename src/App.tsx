@@ -1,38 +1,39 @@
 import {
   Clock,
   FastForward,
-  Globe,
   Leaf,
   MousePointer2,
-  RotateCcw,
-  Save,
-  Settings,
   ShieldAlert,
   ShoppingCart,
   Skull,
   Sparkles,
   Sun,
   Sword,
-  Trophy,
   Wind,
-  X,
   Zap,
 } from 'lucide-react'
 import type React from 'react'
-import { useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { initGlobalAds } from './ads/adsterra'
 import { type AudioSettings, getAudioSettings, updateAudioSettings } from './audio'
-import AbilityButton from './components/AbilityButton'
 import AdsterraAd from './components/AdsterraAd'
 import ConfirmModal from './components/ConfirmModal'
-import MoringaInfo from './components/MoringaInfo'
-import ProgressPanel from './components/ProgressPanel'
-import ResetModal from './components/ResetModal'
-import SettingsModal from './components/SettingsModal'
-import SkillEvolutionModal from './components/SkillEvolutionModal'
-import SkillInfoModal from './components/SkillInfoModal'
+import { GameHeader } from './components/GameHeader'
+import { dismissOnboarding, hasSeenOnboarding, OnboardingHint } from './components/OnboardingHint'
+import { type ShopEntry, ShopPanel } from './components/ShopPanel'
 import { showToast, ToastContainer } from './components/Toast'
-import UpgradeButton from './components/UpgradeButton'
+import { Button } from './components/ui/Button'
+import { I18nProvider } from './i18n/provider'
+import { uiText } from './i18n/ui-text'
+
+const MoringaInfo = lazy(() => import('./components/MoringaInfo'))
+const ProgressPanel = lazy(() => import('./components/ProgressPanel'))
+const ResetModal = lazy(() => import('./components/ResetModal'))
+const SettingsModal = lazy(() => import('./components/SettingsModal'))
+const SkillEvolutionModal = lazy(() => import('./components/SkillEvolutionModal'))
+const SkillInfoModal = lazy(() => import('./components/SkillInfoModal'))
+
 import { SAVE_INTERVAL, UI_SYNC_INTERVAL } from './config/constants'
 import {
   buyUpgrade,
@@ -50,11 +51,31 @@ import { exportSave, importSave, loadGame, resetSave, saveGame } from './saveSys
 import { formatNumber } from './utils/number'
 import { fpsCounter, isPageHidden } from './utils/performance'
 
+const LEAVES = [
+  { left: '6%', delay: '0s', duration: '12s', size: '12px' },
+  { left: '18%', delay: '1.4s', duration: '9s', size: '16px' },
+  { left: '33%', delay: '2.2s', duration: '14s', size: '11px' },
+  { left: '47%', delay: '0.6s', duration: '10s', size: '15px' },
+  { left: '61%', delay: '3s', duration: '13s', size: '13px' },
+  { left: '74%', delay: '1.8s', duration: '11s', size: '17px' },
+  { left: '86%', delay: '2.6s', duration: '9.5s', size: '12px' },
+  { left: '94%', delay: '0.2s', duration: '15s', size: '14px' },
+]
+
+function LoadingNote({ lang }: { lang: Language }) {
+  return (
+    <p role="status" className="p-4 text-sm text-canopy-muted">
+      {uiText(t[lang], 'loading')}
+    </p>
+  )
+}
+
 // Optimized UI state mapper
 const mapStateToUI = (state: GameState) => ({
   energy: state.energy,
   wave: state.wave,
   playerHealth: state.playerHealth,
+  maxPlayerHealth: state.maxPlayerHealth,
   plant: {
     level: state.plant.level,
     stage: state.plant.stage,
@@ -78,7 +99,16 @@ const mapStateToUI = (state: GameState) => ({
 
 export default function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const [lang, setLang] = useState<Language>('en')
+  const [lang, setLang] = useState<Language>(() => {
+    try {
+      const saved = localStorage.getItem('idleTD_lang') as Language
+      if (saved && languages.some(language => language.code === saved)) return saved
+    } catch {
+      // Storage can be unavailable; English remains the default.
+    }
+    return 'en'
+  })
+  const [showOnboarding, setShowOnboarding] = useState(() => !hasSeenOnboarding())
   const gameState = useRef<GameState>(createInitialState())
   const [uiState, setUiState] = useState(() => mapStateToUI(gameState.current))
   const [fps, setFps] = useState(0)
@@ -108,11 +138,6 @@ export default function App() {
 
   useEffect(() => {
     initGlobalAds()
-
-    const savedLang = localStorage.getItem('idleTD_lang') as Language
-    if (savedLang && languages.some(l => l.code === savedLang)) {
-      setLang(savedLang)
-    }
 
     const loadedState = loadGame()
     if (loadedState) {
@@ -206,12 +231,6 @@ export default function App() {
       clearInterval(saveInterval)
     }
   }, [])
-
-  const handleLangChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newLang = e.target.value as Language
-    setLang(newLang)
-    localStorage.setItem('idleTD_lang', newLang)
-  }
 
   const handleCanvasClickEvent = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current
@@ -503,530 +522,332 @@ export default function App() {
     updateAudioSettings(newSettings)
   }
 
+  const makeEntry = (
+    id: string,
+    icon: React.ReactNode,
+    title: string,
+    level: number,
+    accentClass: string,
+    ability?: ShopEntry['ability'],
+    unavailableReason?: string,
+  ): ShopEntry => {
+    const info = getCostInfo(id, level)
+    return {
+      id,
+      icon,
+      title,
+      level,
+      cost: info.cost,
+      count: info.count,
+      canAfford: info.count > 0 && uiState.energy >= info.cost,
+      effect: getSkillEffect(id),
+      accentClass,
+      onBuy: () => handleBuy(id),
+      onInfo: () => handleSkillInfo(id),
+      ability,
+      unavailableReason,
+    }
+  }
+
+  const upgrades: ShopEntry[] = [
+    makeEntry(
+      'damage',
+      <Sword className="h-5 w-5 text-canopy-hp" />,
+      t[lang].damage,
+      uiState.upgrades.damageLevel,
+      'border-l-4 border-l-canopy-hp',
+    ),
+    makeEntry(
+      'speed',
+      <Clock className="h-5 w-5 text-canopy-leaf" />,
+      t[lang].attackSpeed,
+      uiState.upgrades.speedLevel,
+      'border-l-4 border-l-canopy-leaf',
+    ),
+    makeEntry(
+      'click',
+      <MousePointer2 className="h-5 w-5 text-canopy-info" />,
+      t[lang].clickDamage,
+      uiState.upgrades.clickLevel,
+      'border-l-4 border-l-canopy-info',
+    ),
+    makeEntry(
+      'energy',
+      <Zap className="h-5 w-5 text-canopy-sap" />,
+      t[lang].energyMultiplier,
+      uiState.upgrades.energyLevel,
+      'border-l-4 border-l-canopy-sap',
+    ),
+    makeEntry(
+      'evolutionSpeed',
+      <FastForward className="h-5 w-5 text-canopy-info" />,
+      t[lang].evolutionSpeed,
+      uiState.upgrades.evolutionSpeedLevel,
+      'border-l-4 border-l-canopy-info',
+    ),
+    makeEntry(
+      'grass',
+      <Leaf className="h-5 w-5 text-canopy-leaf" />,
+      t[lang].grassDamage,
+      uiState.upgrades.grassLevel,
+      'border-l-4 border-l-canopy-leaf',
+    ),
+  ]
+
+  const abilities: ShopEntry[] = [
+    makeEntry(
+      'sunBurst',
+      <Sun className="h-5 w-5 text-canopy-sap" />,
+      t[lang].ability1,
+      uiState.abilities.sunBurst.level,
+      'border-l-4 border-l-canopy-sap',
+      uiState.abilities.sunBurst,
+    ),
+    makeEntry(
+      'rootEntangle',
+      <Wind className="h-5 w-5 text-canopy-leaf" />,
+      t[lang].ability2,
+      uiState.abilities.rootEntangle.level,
+      'border-l-4 border-l-canopy-leaf',
+      uiState.abilities.rootEntangle,
+    ),
+    makeEntry(
+      'poisonCloud',
+      <Skull className="h-5 w-5 text-canopy-hp" />,
+      t[lang].ability3,
+      uiState.abilities.poisonCloud.level,
+      'border-l-4 border-l-canopy-hp',
+      uiState.abilities.poisonCloud,
+    ),
+    makeEntry(
+      'solGenerator',
+      <Sparkles className="h-5 w-5 text-canopy-sap" />,
+      t[lang].ability4,
+      uiState.abilities.solGenerator.level,
+      'border-l-4 border-l-canopy-warn',
+      uiState.abilities.solGenerator,
+      uiState.plant.level < 500 ? uiText(t[lang], 'solLocked') : undefined,
+    ),
+  ]
+
+  const hud = (
+    <GameHeader
+      lang={lang}
+      energy={uiState.energy}
+      wave={uiState.wave}
+      playerHealth={uiState.playerHealth}
+      maxPlayerHealth={uiState.maxPlayerHealth}
+      plantLevel={uiState.plant.level}
+      plantStage={uiState.plant.stage}
+      fps={fps}
+      onLanguageChange={next => {
+        setLang(next)
+        localStorage.setItem('idleTD_lang', next)
+      }}
+      onOpenSettings={() => setShowSettingsModal(true)}
+      onOpenProgress={() => setShowProgressPanel(true)}
+    />
+  )
+  const hudSlot = typeof document === 'undefined' ? null : document.getElementById('hud-slot')
+
   return (
-    <div className="min-h-screen bg-stone-950 text-stone-100 flex flex-col font-sans overflow-x-hidden select-none">
-      {/* Game Section Wrapper */}
-      <div className="h-screen flex flex-col flex-shrink-0">
-        {/* Header */}
-        <header className="bg-stone-900 border-b border-stone-800 p-4 flex justify-between items-center shadow-md z-10">
-          <div className="flex items-center gap-2 md:gap-4">
-            <div className="flex items-center gap-2 bg-stone-950 px-3 md:px-4 py-1.5 rounded-full border border-stone-800">
-              <Zap className="w-4 h-4 md:w-5 md:h-5 text-yellow-400 fill-yellow-400" />
-              <span className="font-mono text-lg md:text-xl font-bold text-yellow-400">
-                {formatNumber(uiState.energy)}
-              </span>
-            </div>
-            <div className="hidden md:flex items-center gap-1 text-xs text-stone-400 font-mono">
-              <span>FPS:</span>
-              <span className={fps < 30 ? 'text-red-500' : 'text-emerald-500'}>{fps}</span>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 md:gap-6">
-            <div className="text-center hidden xs:block">
-              <div className="text-[9px] md:text-xs text-stone-400 font-bold uppercase tracking-wider">
-                {t[lang].wave}
-              </div>
-              <div className="text-base md:text-xl font-black text-stone-200">{uiState.wave}</div>
-            </div>
-            <div className="text-center">
-              <div className="text-[9px] md:text-xs text-stone-400 font-bold uppercase tracking-wider">
-                HP
-              </div>
-              <div className="text-base md:text-xl font-black text-red-500">
-                {formatNumber(uiState.playerHealth)}
-              </div>
-            </div>
-            <div className="text-center">
-              <div className="text-[9px] md:text-xs text-stone-400 font-bold uppercase tracking-wider">
-                {t[lang].plantLevel}
-              </div>
-              <div className="text-base md:text-xl font-black text-emerald-400">
-                {uiState.plant.level}-{uiState.plant.stage}
-              </div>
-            </div>
-            <div className="flex items-center gap-1 md:gap-2">
-              <button
-                onClick={() => setShowSettingsModal(true)}
-                className="p-1.5 md:p-2 bg-stone-800 rounded hover:bg-stone-700 text-stone-400 hover:text-white transition-colors"
-              >
-                <Settings className="w-4 h-4 md:w-5 md:h-5" />
-              </button>
-              <button
-                onClick={() => setShowProgressPanel(true)}
-                className="p-1.5 md:p-2 bg-stone-800 rounded hover:bg-stone-700 text-stone-400 hover:text-white transition-colors"
-                title={t[lang].progressBtn || 'Progress'}
-              >
-                <Trophy className="w-4 h-4 md:w-5 md:h-5" />
-              </button>
-              <Globe className="w-3 h-3 md:w-4 md:h-4 text-stone-400 ml-2" />
-              <select
-                value={lang}
-                onChange={handleLangChange}
-                className="bg-stone-800 text-stone-200 text-[10px] md:text-xs rounded p-1 border border-stone-700 outline-none max-w-[60px] md:max-w-none"
-              >
-                {languages.map(l => (
-                  <option key={l.code} value={l.code}>
-                    {l.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </header>
+    <I18nProvider lang={lang}>
+      <div className="flex h-full min-h-0 flex-col overflow-x-hidden overflow-y-auto bg-canopy-bg font-sans text-canopy-text select-none">
+        {hudSlot ? createPortal(hud, hudSlot) : hud}
+        <div className="flex h-full min-h-full shrink-0 flex-col">
+          <main id="game" className="relative flex min-h-0 flex-1 flex-col lg:flex-row">
+            {showSettingsModal && (
+              <Suspense fallback={<LoadingNote lang={lang} />}>
+                <SettingsModal
+                  audio={audio}
+                  onToggleMute={toggleMute}
+                  onVolumeChange={handleVolumeChange}
+                  lowPerformance={!!uiState.settings?.lowPerformance}
+                  onTogglePerformance={togglePerformance}
+                  onManualSave={handleManualSave}
+                  onExport={handleExport}
+                  exportString={exportString}
+                  onCopyExport={handleCopyExport}
+                  copySuccess={copySuccess}
+                  importString={importString}
+                  onImportStringChange={setImportString}
+                  onImport={handleImport}
+                  importError={importError}
+                  onHardReset={handleHardReset}
+                  onClose={() => setShowSettingsModal(false)}
+                  lang={lang}
+                />
+              </Suspense>
+            )}
+            {showResetModal && (
+              <Suspense fallback={<LoadingNote lang={lang} />}>
+                <ResetModal
+                  resets={uiState.resets}
+                  onCancel={() => setShowResetModal(false)}
+                  onConfirm={confirmReset}
+                  lang={lang}
+                />
+              </Suspense>
+            )}
+            {uiState.modal.isOpen && uiState.modal.type === 'skillEvolution' && (
+              <Suspense fallback={<LoadingNote lang={lang} />}>
+                <SkillEvolutionModal
+                  options={uiState.modal.options}
+                  onSelect={handleModalSelect}
+                  lang={lang}
+                />
+              </Suspense>
+            )}
+            {uiState.modal.isOpen && uiState.modal.type === 'skillInfo' && (
+              <Suspense fallback={<LoadingNote lang={lang} />}>
+                <SkillInfoModal
+                  skillId={uiState.modal.skillId}
+                  onClose={handleModalClose}
+                  getSkillName={getSkillName}
+                  getSkillLevel={getSkillLevel}
+                  getSkillEffect={getSkillEffect}
+                  getSkillCooldown={getSkillCooldown}
+                  getSkillDescription={getSkillDescription}
+                  getSkillEvolutions={getSkillEvolutions}
+                  formatEvolutionName={formatEvolutionName}
+                  lang={lang}
+                />
+              </Suspense>
+            )}
 
-        {/* Main Content */}
-        <main className="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
-          {/* Settings Modal */}
-          {showSettingsModal && (
-            <SettingsModal
-              audio={audio}
-              onToggleMute={toggleMute}
-              onVolumeChange={handleVolumeChange}
-              lowPerformance={!!uiState.settings?.lowPerformance}
-              onTogglePerformance={togglePerformance}
-              onManualSave={handleManualSave}
-              onExport={handleExport}
-              exportString={exportString}
-              onCopyExport={handleCopyExport}
-              copySuccess={copySuccess}
-              importString={importString}
-              onImportStringChange={setImportString}
-              onImport={handleImport}
-              importError={importError}
-              onHardReset={handleHardReset}
-              onClose={() => setShowSettingsModal(false)}
-              lang={lang}
-            />
-          )}
-
-          {/* Reset Modal */}
-          {showResetModal && (
-            <ResetModal
-              resets={uiState.resets}
-              onCancel={() => setShowResetModal(false)}
-              onConfirm={confirmReset}
-              lang={lang}
-            />
-          )}
-
-          {/* Modal Overlay */}
-          {uiState.modal.isOpen && uiState.modal.type === 'skillEvolution' && (
-            <SkillEvolutionModal
-              options={uiState.modal.options}
-              onSelect={handleModalSelect}
-              lang={lang}
-            />
-          )}
-
-          {uiState.modal.isOpen && uiState.modal.type === 'skillInfo' && (
-            <SkillInfoModal
-              skillId={uiState.modal.skillId}
-              onClose={handleModalClose}
-              getSkillName={getSkillName}
-              getSkillLevel={getSkillLevel}
-              getSkillEffect={getSkillEffect}
-              getSkillCooldown={getSkillCooldown}
-              getSkillDescription={getSkillDescription}
-              getSkillEvolutions={getSkillEvolutions}
-              formatEvolutionName={formatEvolutionName}
-              lang={lang}
-            />
-          )}
-
-          {/* Left Side Ad Slot (Desktop) */}
-          <div className="hidden lg:block w-32 bg-stone-900 border-r border-stone-800 p-2 flex-shrink-0">
-            <div className="w-full h-full bg-stone-950/50 rounded flex items-center justify-center text-stone-700 text-xs text-center border border-dashed border-stone-800">
-              Ad Slot
-              <br />
-              Vertical
-            </div>
-          </div>
-
-          {/* Game Canvas Area */}
-          <div className="flex-1 relative bg-stone-950 overflow-hidden cursor-crosshair flex flex-col">
-            {/* Top Ad Slot (Mobile/Tablet) */}
-            <div className="lg:hidden w-full h-16 bg-stone-900 border-b border-stone-800 flex items-center justify-center text-stone-700 text-xs border-dashed">
-              Ad Slot Horizontal
-            </div>
-
-            <div className="flex-1 relative w-full h-full">
-              {/* Falling Leaves Background Effect (CSS only) */}
-              <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-20">
-                {[...Array(20)].map((_, i) => (
-                  <div
-                    key={i}
-                    className="absolute animate-fall"
-                    style={{
-                      left: `${Math.random() * 100}%`,
-                      top: `-${Math.random() * 20 + 10}%`,
-                      animationDuration: `${Math.random() * 5 + 5}s`,
-                      animationDelay: `${Math.random() * 5}s`,
-                      fontSize: `${Math.random() * 10 + 10}px`,
-                    }}
-                  >
-                    🍃
-                  </div>
-                ))}
-              </div>
-
+            <div className="relative flex min-h-[16rem] flex-1 flex-col overflow-hidden bg-canopy-bg">
+              {!uiState.settings?.lowPerformance && (
+                <div
+                  className="pointer-events-none absolute inset-0 overflow-hidden opacity-70"
+                  aria-hidden="true"
+                >
+                  {LEAVES.map(leaf => (
+                    <span
+                      key={leaf.left}
+                      className="absolute animate-fall"
+                      style={{
+                        left: leaf.left,
+                        top: '-12%',
+                        animationDuration: leaf.duration,
+                        animationDelay: leaf.delay,
+                        fontSize: leaf.size,
+                      }}
+                    >
+                      🍃
+                    </span>
+                  ))}
+                </div>
+              )}
               <canvas
                 ref={canvasRef}
-                className="absolute inset-0 w-full h-full block"
+                className="absolute inset-0 block h-full w-full"
+                aria-label={t[lang].clickDamage}
                 onClick={handleCanvasClickEvent}
               />
-
+              {showOnboarding && (
+                <OnboardingHint
+                  lang={lang}
+                  onDismiss={() => {
+                    dismissOnboarding()
+                    setShowOnboarding(false)
+                  }}
+                />
+              )}
               {uiState.waveState.isBoss && (
-                <div className="absolute top-8 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-red-950/80 border border-red-500/50 px-6 py-2 rounded-full animate-pulse pointer-events-none">
-                  <ShieldAlert className="w-6 h-6 text-red-500" />
-                  <span className="text-red-500 font-black tracking-widest uppercase">
+                <div className="pointer-events-none absolute top-3 left-1/2 flex max-w-[calc(100%-1.5rem)] -translate-x-1/2 items-center gap-2 rounded-full border border-canopy-hp/50 bg-[#3a1014]/90 px-4 py-2">
+                  <ShieldAlert className="h-5 w-5 text-canopy-hp" aria-hidden="true" />
+                  <span className="font-semibold tracking-wide text-canopy-hp uppercase">
                     {t[lang].bossWave}
                   </span>
                 </div>
               )}
-
-              {/* Evolution Progress Overlay */}
-              <div className="absolute bottom-8 left-1/2 -translate-x-1/2 w-80 md:w-96 bg-stone-900/80 backdrop-blur-sm border border-stone-800 p-3 rounded-2xl shadow-2xl pointer-events-none">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-xs font-bold text-stone-400 uppercase tracking-wider flex items-center gap-1">
-                    <Sparkles className="w-3 h-3 text-blue-400" /> {t[lang].autoEvolution}
+              <div className="pointer-events-none absolute bottom-3 left-1/2 w-[min(24rem,calc(100%-1.5rem))] -translate-x-1/2 rounded-2xl border border-canopy-line bg-canopy-panel/90 p-3 shadow-xl">
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <span className="flex items-center gap-1 text-xs font-semibold tracking-wide text-canopy-muted uppercase">
+                    <Sparkles className="h-3 w-3 text-canopy-info" aria-hidden="true" />{' '}
+                    {t[lang].autoEvolution}
                   </span>
-                  <span className="text-xs font-mono text-blue-400">{evoPercent.toFixed(1)}%</span>
+                  <span className="font-mono text-xs text-canopy-info">
+                    {evoPercent.toFixed(1)}%
+                  </span>
                 </div>
-                <div className="h-2 bg-stone-950 rounded-full overflow-hidden border border-stone-800">
-                  <div
-                    className="h-full bg-gradient-to-r from-blue-600 to-cyan-400 transition-all duration-100 ease-linear"
-                    style={{ width: `${evoPercent}%` }}
-                  />
+                <div className="h-2 overflow-hidden rounded-full border border-canopy-line bg-canopy-bg">
+                  <div className="h-full bg-canopy-info" style={{ width: `${evoPercent}%` }} />
                 </div>
               </div>
             </div>
+
+            {isShopOpen && (
+              <button
+                type="button"
+                className="fixed inset-0 z-40 bg-[#07140f]/75 lg:hidden"
+                aria-label={t[lang].close}
+                onClick={() => setIsShopOpen(false)}
+              />
+            )}
+            <ShopPanel
+              lang={lang}
+              open={isShopOpen}
+              onClose={() => setIsShopOpen(false)}
+              entries={upgrades}
+              abilities={abilities}
+              buyMultiplier={buyMultiplier}
+              onBuyMultiplier={setBuyMultiplier}
+              onSave={handleManualSave}
+              onReset={handleResetClick}
+              canReset={uiState.wave >= 50 || uiState.plant.level >= 50}
+              resets={uiState.resets}
+            />
+          </main>
+
+          <div className="border-t border-canopy-line p-2 lg:hidden">
+            <Button className="w-full" onClick={() => setIsShopOpen(true)}>
+              <ShoppingCart className="h-4 w-4" aria-hidden="true" />
+              {t[lang].upgrades}
+            </Button>
           </div>
 
-          {/* Mobile Shop Button */}
-          <button
-            onClick={() => setIsShopOpen(true)}
-            className="lg:hidden absolute bottom-24 right-4 z-30 bg-emerald-600 text-white flex items-center gap-2 px-5 py-3 rounded-full shadow-2xl active:scale-95 transition-transform border border-emerald-400/30 backdrop-blur-md"
-          >
-            <ShoppingCart className="w-5 h-5" />
-            <span className="font-bold text-sm uppercase tracking-wider">Shop</span>
-          </button>
-
-          {/* Upgrades Panel (Desktop) / Modal (Mobile) */}
-          <div
-            className={`
-          ${isShopOpen ? 'fixed inset-0 z-40 bg-black/60 backdrop-blur-md flex items-center justify-center p-4' : 'hidden'} 
-          lg:flex lg:static lg:w-96 lg:bg-stone-900 lg:border-l lg:border-stone-800 lg:flex-col lg:shadow-2xl lg:z-10 lg:flex-shrink-0
-        `}
-            onClick={() => setIsShopOpen(false)}
-          >
-            <div
-              className={`
-              ${isShopOpen ? 'bg-stone-900 border border-stone-700 rounded-2xl w-full max-w-lg max-h-[80vh] flex flex-col shadow-2xl' : 'flex flex-col h-full w-full'}
-            `}
-              onClick={e => e.stopPropagation()}
+          <footer className="border-t border-canopy-line px-3 py-2 text-center text-xs text-canopy-muted">
+            {t[lang].developedBy}{' '}
+            <a
+              href="https://github.com/ricardo-camilo-programador-frontend-web"
+              target="_blank"
+              rel="noreferrer"
+              className="font-semibold text-canopy-leaf underline-offset-2 hover:underline"
             >
-              <div className="p-4 border-b border-stone-800 bg-stone-900/50 flex justify-between items-center">
-                <h2 className="text-lg font-black tracking-tight text-stone-300">
-                  {t[lang].upgrades}
-                </h2>
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleManualSave}
-                    className="p-2 bg-stone-800 rounded-lg hover:bg-stone-700 text-stone-400 transition-colors"
-                    title={t[lang].saveGame}
-                  >
-                    <Save className="w-4 h-4" />
-                  </button>
-                  <div className="relative group">
-                    <button
-                      onClick={handleResetClick}
-                      disabled={uiState.wave < 50 && uiState.plant.level < 50}
-                      className={`p-2 rounded-lg transition-colors ${
-                        uiState.wave >= 50 || uiState.plant.level >= 50
-                          ? 'bg-stone-800 hover:bg-red-900/50 text-stone-400 hover:text-red-400'
-                          : 'bg-stone-900 text-stone-700 cursor-not-allowed'
-                      }`}
-                    >
-                      <RotateCcw className="w-4 h-4" />
-                    </button>
-                    {uiState.wave < 50 && uiState.plant.level < 50 && (
-                      <div className="absolute right-0 top-full mt-2 w-48 bg-black text-xs text-stone-400 p-2 rounded border border-stone-800 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 text-center">
-                        Reset unlocks after Wave 50 or Plant Level 50
-                      </div>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => setIsShopOpen(false)}
-                    className="lg:hidden p-2 bg-stone-800 rounded-lg hover:bg-stone-700 text-stone-400 transition-colors"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex-1 overflow-y-auto p-4 space-y-6">
-                {/* Buy Multiplier Toggle */}
-                <div className="flex bg-stone-950 rounded-xl p-1 border border-stone-800">
-                  {(['1', '10', 'MAX'] as const).map(mult => (
-                    <button
-                      key={mult}
-                      onClick={() => setBuyMultiplier(mult === 'MAX' ? 'MAX' : parseInt(mult, 10))}
-                      className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${
-                        buyMultiplier === (mult === 'MAX' ? 'MAX' : parseInt(mult, 10))
-                          ? 'bg-emerald-600 text-white shadow-md'
-                          : 'text-stone-400 hover:text-stone-300 hover:bg-stone-900'
-                      }`}
-                    >
-                      x{mult}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Basic Upgrades */}
-                <div className="grid grid-cols-1 gap-3">
-                  {(() => {
-                    const info = getCostInfo('damage', uiState.upgrades.damageLevel)
-                    return (
-                      <UpgradeButton
-                        icon={<Sword className="w-6 h-6 text-red-400" />}
-                        title={t[lang].damage}
-                        level={uiState.upgrades.damageLevel}
-                        cost={info.cost}
-                        count={info.count}
-                        canAfford={info.count > 0 && uiState.energy >= info.cost}
-                        onClick={() => handleBuy('damage')}
-                        onIconClick={() => handleSkillInfo('damage')}
-                        formatNumber={formatNumber}
-                        lang={lang}
-                        colorClass="from-red-500/20 to-orange-500/20"
-                      />
-                    )
-                  })()}
-                  {(() => {
-                    const info = getCostInfo('speed', uiState.upgrades.speedLevel)
-                    return (
-                      <UpgradeButton
-                        icon={<Clock className="w-6 h-6 text-emerald-400" />}
-                        title={t[lang].attackSpeed}
-                        level={uiState.upgrades.speedLevel}
-                        cost={info.cost}
-                        count={info.count}
-                        canAfford={info.count > 0 && uiState.energy >= info.cost}
-                        onClick={() => handleBuy('speed')}
-                        onIconClick={() => handleSkillInfo('speed')}
-                        formatNumber={formatNumber}
-                        lang={lang}
-                        colorClass="from-emerald-500/20 to-teal-500/20"
-                      />
-                    )
-                  })()}
-                  {(() => {
-                    const info = getCostInfo('click', uiState.upgrades.clickLevel)
-                    return (
-                      <UpgradeButton
-                        icon={<MousePointer2 className="w-6 h-6 text-blue-400" />}
-                        title={t[lang].clickDamage}
-                        level={uiState.upgrades.clickLevel}
-                        cost={info.cost}
-                        count={info.count}
-                        canAfford={info.count > 0 && uiState.energy >= info.cost}
-                        onClick={() => handleBuy('click')}
-                        onIconClick={() => handleSkillInfo('click')}
-                        formatNumber={formatNumber}
-                        lang={lang}
-                        colorClass="from-blue-500/20 to-indigo-500/20"
-                      />
-                    )
-                  })()}
-                  {(() => {
-                    const info = getCostInfo('energy', uiState.upgrades.energyLevel)
-                    return (
-                      <UpgradeButton
-                        icon={<Zap className="w-6 h-6 text-yellow-400" />}
-                        title={t[lang].energyMultiplier}
-                        level={uiState.upgrades.energyLevel}
-                        cost={info.cost}
-                        count={info.count}
-                        canAfford={info.count > 0 && uiState.energy >= info.cost}
-                        onClick={() => handleBuy('energy')}
-                        onIconClick={() => handleSkillInfo('energy')}
-                        formatNumber={formatNumber}
-                        lang={lang}
-                        colorClass="from-yellow-500/20 to-amber-500/20"
-                      />
-                    )
-                  })()}
-                  {(() => {
-                    const info = getCostInfo('evolutionSpeed', uiState.upgrades.evolutionSpeedLevel)
-                    return (
-                      <UpgradeButton
-                        icon={<FastForward className="w-6 h-6 text-cyan-400" />}
-                        title={t[lang].evolutionSpeed}
-                        level={uiState.upgrades.evolutionSpeedLevel}
-                        cost={info.cost}
-                        count={info.count}
-                        canAfford={info.count > 0 && uiState.energy >= info.cost}
-                        onClick={() => handleBuy('evolutionSpeed')}
-                        onIconClick={() => handleSkillInfo('evolutionSpeed')}
-                        formatNumber={formatNumber}
-                        lang={lang}
-                        colorClass="from-cyan-500/20 to-blue-500/20"
-                      />
-                    )
-                  })()}
-                  {(() => {
-                    const info = getCostInfo('grass', uiState.upgrades.grassLevel)
-                    return (
-                      <UpgradeButton
-                        icon={<Leaf className="w-6 h-6 text-green-500" />}
-                        title={t[lang].grassDamage}
-                        level={uiState.upgrades.grassLevel}
-                        cost={info.cost}
-                        count={info.count}
-                        canAfford={info.count > 0 && uiState.energy >= info.cost}
-                        onClick={() => handleBuy('grass')}
-                        onIconClick={() => handleSkillInfo('grass')}
-                        formatNumber={formatNumber}
-                        lang={lang}
-                        colorClass="from-green-500/20 to-lime-500/20"
-                      />
-                    )
-                  })()}
-                </div>
-
-                {/* Abilities */}
-                <div>
-                  <h3 className="text-sm font-bold text-stone-400 uppercase tracking-wider mb-3">
-                    {t[lang].abilities}
-                  </h3>
-                  <div className="grid grid-cols-1 gap-3">
-                    {(() => {
-                      const info = getCostInfo('sunBurst', uiState.abilities.sunBurst.level)
-                      return (
-                        <AbilityButton
-                          icon={<Sun className="w-6 h-6 text-yellow-300" />}
-                          title={t[lang].ability1}
-                          ability={uiState.abilities.sunBurst}
-                          cost={info.cost}
-                          count={info.count}
-                          canAfford={info.count > 0 && uiState.energy >= info.cost}
-                          onClick={() => handleBuy('sunBurst')}
-                          onIconClick={() => handleSkillInfo('sunBurst')}
-                          formatNumber={formatNumber}
-                          lang={lang}
-                          colorClass="from-yellow-400/30 to-orange-500/30"
-                        />
-                      )
-                    })()}
-                    {(() => {
-                      const info = getCostInfo('rootEntangle', uiState.abilities.rootEntangle.level)
-                      return (
-                        <AbilityButton
-                          icon={<Wind className="w-6 h-6 text-emerald-300" />}
-                          title={t[lang].ability2}
-                          ability={uiState.abilities.rootEntangle}
-                          cost={info.cost}
-                          count={info.count}
-                          canAfford={info.count > 0 && uiState.energy >= info.cost}
-                          onClick={() => handleBuy('rootEntangle')}
-                          onIconClick={() => handleSkillInfo('rootEntangle')}
-                          formatNumber={formatNumber}
-                          lang={lang}
-                          colorClass="from-emerald-400/30 to-teal-500/30"
-                        />
-                      )
-                    })()}
-                    {(() => {
-                      const info = getCostInfo('poisonCloud', uiState.abilities.poisonCloud.level)
-                      return (
-                        <AbilityButton
-                          icon={<Skull className="w-6 h-6 text-purple-500" />}
-                          title={t[lang].ability3}
-                          ability={uiState.abilities.poisonCloud}
-                          cost={info.cost}
-                          count={info.count}
-                          canAfford={info.count > 0 && uiState.energy >= info.cost}
-                          onClick={() => handleBuy('poisonCloud')}
-                          onIconClick={() => handleSkillInfo('poisonCloud')}
-                          formatNumber={formatNumber}
-                          lang={lang}
-                          colorClass="from-purple-500/30 to-fuchsia-600/30"
-                        />
-                      )
-                    })()}
-                    {(() => {
-                      if (uiState.plant.level < 500) return null
-                      const info = getCostInfo('solGenerator', uiState.abilities.solGenerator.level)
-                      return (
-                        <AbilityButton
-                          icon={<Sparkles className="w-6 h-6 text-yellow-400" />}
-                          title={t[lang].ability4}
-                          ability={uiState.abilities.solGenerator}
-                          cost={info.cost}
-                          count={info.count}
-                          canAfford={info.count > 0 && uiState.energy >= info.cost}
-                          onClick={() => handleBuy('solGenerator')}
-                          onIconClick={() => handleSkillInfo('solGenerator')}
-                          formatNumber={formatNumber}
-                          lang={lang}
-                          colorClass="from-yellow-400/30 to-amber-500/30"
-                        />
-                      )
-                    })()}
-                  </div>
-                </div>
-
-                {/* Sidebar Ad */}
-                <div className="w-full flex justify-center mt-6 mb-2">
-                  <AdsterraAd zone="sidebar_banner" width={300} height={250} lazy />
-                </div>
-              </div>
-            </div>
+              Ricardo Camilo
+            </a>
+          </footer>
+          <div className="flex justify-center border-t border-canopy-line px-2 py-2">
+            <AdsterraAd zone="bottom_banner" width={320} height={50} lazy />
           </div>
-        </main>
-
-        {/* Footer */}
-        <footer className="bg-stone-950 border-t border-stone-900 p-2 text-center text-[10px] text-stone-400">
-          {t[lang].developedBy}{' '}
-          <a
-            href="https://github.com/ricardo-camilo-programador-frontend-web"
-            target="_blank"
-            rel="noreferrer"
-            className="text-emerald-600 hover:underline"
-          >
-            Ricardo Camilo
-          </a>
-        </footer>
-
-        {/* Bottom Banner Ad */}
-        <div className="w-full bg-stone-950 border-t border-stone-900 flex justify-center py-2">
-          <AdsterraAd zone="bottom_banner" width={320} height={50} lazy />
         </div>
+
+        <Suspense fallback={<LoadingNote lang={lang} />}>
+          <MoringaInfo lang={lang} />
+        </Suspense>
+        <ToastContainer />
+        {showProgressPanel && (
+          <Suspense fallback={<LoadingNote lang={lang} />}>
+            <ProgressPanel
+              lang={lang}
+              uiState={uiState}
+              onClose={() => setShowProgressPanel(false)}
+            />
+          </Suspense>
+        )}
+        <ConfirmModal
+          open={confirmModal.open}
+          title={confirmModal.title}
+          message={confirmModal.message}
+          onConfirm={confirmModal.onConfirm}
+          onCancel={confirmModal.onCancel}
+          confirmText={confirmModal.confirmText}
+          cancelText={confirmModal.cancelText}
+          destructive={confirmModal.destructive}
+          lang={confirmModal.lang}
+        />
       </div>
-
-      {/* Moringa Info Section */}
-      <MoringaInfo />
-
-      {/* Toast Notifications */}
-      <ToastContainer />
-
-      {/* Progress Panel */}
-      {showProgressPanel && (
-        <ProgressPanel lang={lang} uiState={uiState} onClose={() => setShowProgressPanel(false)} />
-      )}
-
-      {/* Hard Reset Confirm Modal */}
-      <ConfirmModal
-        open={confirmModal.open}
-        title={confirmModal.title}
-        message={confirmModal.message}
-        onConfirm={confirmModal.onConfirm}
-        onCancel={confirmModal.onCancel}
-        confirmText={confirmModal.confirmText}
-        cancelText={confirmModal.cancelText}
-        destructive={confirmModal.destructive}
-        lang={confirmModal.lang}
-      />
-    </div>
+    </I18nProvider>
   )
 }

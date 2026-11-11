@@ -72,7 +72,6 @@ window.RC_STUDY_MODAL={"emoji": "\ud83c\udf33", "title": "Tree Ascension", "stac
       applyConsent(state.analyticsEnabled);
     };
     window.rcStudyModal.open = open;
-    if (!state.hasSeenModal) setTimeout(open, 1000);
     if (!state.analyticsEnabled) applyConsent(false);
   }
   window.rcStudyModal = { open: function () {}, isAnalyticsEnabled: function () { return state.analyticsEnabled; } };

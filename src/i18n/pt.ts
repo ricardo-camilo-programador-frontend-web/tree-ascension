@@ -228,4 +228,19 @@ export const pt: TranslationSet = {
     slow_thorns: 'Grama deixa inimigos um pouco mais lentos',
   },
   waveComplete: 'Onda Completa!',
+  ui: {
+    onboarding:
+      'Clique nos inimigos, compre melhorias e segure a linha. O prestígio abre na onda 50.',
+    gotIt: 'Entendi',
+    noEvolutions: 'Nenhuma evolução ainda. Continue crescendo para abrir um caminho.',
+    milestonesClear: 'Todos os marcos atuais estão completos.',
+    loading: 'Carregando',
+    errorTitle: 'A copa tropeçou',
+    errorBody: 'Algo deu errado ao desenhar o campo. Seu save continua neste aparelho.',
+    reload: 'Recarregar',
+    language: 'Idioma',
+    solLocked: 'Desbloqueia no nível 500 da planta',
+    adLoading: 'Carregando anúncio',
+    adError: 'Anúncio indisponível',
+  },
 }

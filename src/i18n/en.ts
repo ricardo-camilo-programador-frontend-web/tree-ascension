@@ -227,4 +227,18 @@ export const en: TranslationSet = {
     slow_thorns: 'Grass slightly slows enemies',
   },
   waveComplete: 'Wave Complete!',
+  ui: {
+    onboarding: 'Click enemies, buy upgrades, hold the line. Prestige opens at wave 50.',
+    gotIt: 'Got it',
+    noEvolutions: 'No evolutions yet. Keep growing to unlock a path.',
+    milestonesClear: 'Every current milestone is complete.',
+    loading: 'Loading',
+    errorTitle: 'The canopy stumbled',
+    errorBody: 'Something went wrong drawing the field. Your save stays on this device.',
+    reload: 'Reload',
+    language: 'Language',
+    solLocked: 'Unlocks at plant level 500',
+    adLoading: 'Loading advertisement',
+    adError: 'Advertisement unavailable',
+  },
 }

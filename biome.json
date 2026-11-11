@@ -12,12 +12,13 @@
       "**/*.tsx",
       "**/*.js",
       "**/*.jsx",
+      "!public",
       "**/*.json",
       "**/*.css",
-      "!.github/**",
-      "!dist/**",
-      "!node_modules/**",
-      "!coverage/**",
+      "!.github",
+      "!dist",
+      "!node_modules",
+      "!coverage",
       "!src/index.css"
     ]
   },

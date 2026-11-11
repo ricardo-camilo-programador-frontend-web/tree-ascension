@@ -21,7 +21,9 @@ import type React from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { t } from '../i18n'
 import type { Language, TranslationSet } from '../i18n/types'
+import { uiText } from '../i18n/ui-text'
 import { formatNumber } from '../utils/number'
+import { EmptyState } from './ui/EmptyState'
 
 interface ProgressPanelProps {
   lang: Language
@@ -282,10 +284,13 @@ export default function ProgressPanel({ lang, uiState, onClose }: ProgressPanelP
   }, [uiState, unlockedAchievements, totalUpgrades])
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-4"
-      onClick={onClose}
-    >
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <button
+        type="button"
+        className="absolute inset-0 bg-[#07140f]/85 backdrop-blur-sm"
+        aria-label={t[lang].close || 'Close'}
+        onClick={onClose}
+      />
       <div
         ref={modalRef}
         role="dialog"
@@ -293,41 +298,38 @@ export default function ProgressPanel({ lang, uiState, onClose }: ProgressPanelP
         aria-labelledby="progress-panel-title"
         tabIndex={-1}
         onKeyDown={handleKeyDown}
-        className="bg-stone-900 border border-stone-700 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl outline-none"
-        onClick={e => e.stopPropagation()}
+        className="relative z-10 max-h-[90vh] w-full max-w-2xl overflow-hidden rounded-2xl border border-canopy-line bg-canopy-panel shadow-2xl outline-none"
       >
         {/* Header */}
-        <div className="p-6 border-b border-stone-800 bg-gradient-to-r from-emerald-900/30 to-cyan-900/30">
+        <div className="p-6 border-b border-canopy-line bg-canopy-raised/60">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
               <Trophy className="w-8 h-8 text-yellow-400" />
-              <h2
-                id="progress-panel-title"
-                className="text-2xl font-black text-stone-100 uppercase tracking-wider"
-              >
+              <h2 id="progress-panel-title" className="font-display text-2xl text-canopy-text">
                 {t[lang].progressTitle || 'Progress'}
               </h2>
             </div>
             <button
               onClick={onClose}
               aria-label={t[lang].close || 'Close'}
-              className="p-2 bg-stone-800 hover:bg-stone-700 rounded-lg text-stone-400 hover:text-white transition-colors"
+              type="button"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-canopy-line bg-canopy-raised text-canopy-muted hover:text-canopy-text"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
           {/* Progress Score */}
-          <div className="mt-4 bg-stone-950 rounded-xl p-4 border border-stone-800">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-stone-400 font-bold uppercase text-sm tracking-wider">
+          <div className="mt-4 rounded-xl border border-canopy-line bg-canopy-bg p-4">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-sm font-semibold uppercase tracking-wide text-canopy-muted">
                 {t[lang].progressScore || 'Progress Score'}
               </span>
-              <span className="text-2xl font-black text-emerald-400">{progressScore}</span>
+              <span className="font-mono text-2xl font-bold text-canopy-leaf">{progressScore}</span>
             </div>
-            <div className="h-3 bg-stone-900 rounded-full overflow-hidden">
+            <div className="h-2 overflow-hidden rounded-full border border-canopy-line bg-canopy-panel">
               <div
-                className="h-full bg-gradient-to-r from-emerald-500 to-cyan-400 transition-all duration-500"
+                className="h-full bg-canopy-leaf"
                 style={{ width: `${Math.min(100, progressScore / 5)}%` }}
               />
             </div>
@@ -338,72 +340,72 @@ export default function ProgressPanel({ lang, uiState, onClose }: ProgressPanelP
         <div className="overflow-y-auto max-h-[60vh] p-6 space-y-6">
           {/* Statistics */}
           <section>
-            <h3 className="text-lg font-bold text-stone-300 mb-4 flex items-center gap-2">
+            <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-canopy-text">
               <TrendingUp className="w-5 h-5 text-cyan-400" />
               {t[lang].statistics || 'Statistics'}
             </h3>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              <div className="bg-stone-950 rounded-xl p-4 border border-stone-800">
-                <div className="text-xs text-stone-400 uppercase tracking-wider mb-1">
+              <div className="rounded-xl border border-canopy-line bg-canopy-bg p-4">
+                <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-canopy-muted">
                   {t[lang].wave}
                 </div>
-                <div className="text-xl font-black text-stone-200">{uiState.wave}</div>
+                <div className="font-mono text-xl font-bold text-canopy-text">{uiState.wave}</div>
               </div>
-              <div className="bg-stone-950 rounded-xl p-4 border border-stone-800">
-                <div className="text-xs text-stone-400 uppercase tracking-wider mb-1">
+              <div className="rounded-xl border border-canopy-line bg-canopy-bg p-4">
+                <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-canopy-muted">
                   {t[lang].plantLevel}
                 </div>
                 <div className="text-xl font-black text-emerald-400">
                   {uiState.plant.level}-{uiState.plant.stage}
                 </div>
               </div>
-              <div className="bg-stone-950 rounded-xl p-4 border border-stone-800">
-                <div className="text-xs text-stone-400 uppercase tracking-wider mb-1">
+              <div className="rounded-xl border border-canopy-line bg-canopy-bg p-4">
+                <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-canopy-muted">
                   {t[lang].resets}
                 </div>
                 <div className="text-xl font-black text-orange-400">{uiState.resets}</div>
               </div>
-              <div className="bg-stone-950 rounded-xl p-4 border border-stone-800">
-                <div className="text-xs text-stone-400 uppercase tracking-wider mb-1">
+              <div className="rounded-xl border border-canopy-line bg-canopy-bg p-4">
+                <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-canopy-muted">
                   {t[lang].energy || 'Energy'}
                 </div>
                 <div className="text-xl font-black text-yellow-400">
                   {formatNumber(uiState.energy)}
                 </div>
               </div>
-              <div className="bg-stone-950 rounded-xl p-4 border border-stone-800">
-                <div className="text-xs text-stone-400 uppercase tracking-wider mb-1">
+              <div className="rounded-xl border border-canopy-line bg-canopy-bg p-4">
+                <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-canopy-muted">
                   {t[lang].totalUpgrades || 'Total Upgrades'}
                 </div>
                 <div className="text-xl font-black text-blue-400">{totalUpgrades}</div>
               </div>
-              <div className="bg-stone-950 rounded-xl p-4 border border-stone-800">
-                <div className="text-xs text-stone-400 uppercase tracking-wider mb-1">
+              <div className="rounded-xl border border-canopy-line bg-canopy-bg p-4">
+                <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-canopy-muted">
                   {t[lang].evolutions || 'Evolutions'}
                 </div>
                 <div className="text-xl font-black text-purple-400">{totalEvolutions}</div>
               </div>
-              <div className="bg-stone-950 rounded-xl p-4 border border-stone-800">
-                <div className="text-xs text-stone-400 uppercase tracking-wider mb-1">
+              <div className="rounded-xl border border-canopy-line bg-canopy-bg p-4">
+                <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-canopy-muted">
                   {t[lang].damageMultiplier || 'Damage Mult'}
                 </div>
                 <div className="text-xl font-black text-red-400">
                   x{formatNumber(uiState.plant.damageMultiplier)}
                 </div>
               </div>
-              <div className="bg-stone-950 rounded-xl p-4 border border-stone-800">
-                <div className="text-xs text-stone-400 uppercase tracking-wider mb-1">
+              <div className="rounded-xl border border-canopy-line bg-canopy-bg p-4">
+                <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-canopy-muted">
                   {t[lang].speedMultiplier || 'Speed Mult'}
                 </div>
                 <div className="text-xl font-black text-cyan-400">
                   x{formatNumber(uiState.plant.attackSpeedMultiplier)}
                 </div>
               </div>
-              <div className="bg-stone-950 rounded-xl p-4 border border-stone-800">
-                <div className="text-xs text-stone-400 uppercase tracking-wider mb-1">
+              <div className="rounded-xl border border-canopy-line bg-canopy-bg p-4">
+                <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-canopy-muted">
                   {t[lang].playTime || 'Play Time'}
                 </div>
-                <div className="text-xl font-black text-stone-200">
+                <div className="font-mono text-xl font-bold text-canopy-text">
                   {formatPlayTime(totalPlayTime)}
                 </div>
               </div>
@@ -412,7 +414,7 @@ export default function ProgressPanel({ lang, uiState, onClose }: ProgressPanelP
 
           {/* Achievements */}
           <section>
-            <h3 className="text-lg font-bold text-stone-300 mb-4 flex items-center gap-2">
+            <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-canopy-text">
               <Trophy className="w-5 h-5 text-yellow-400" />
               {t[lang].achievements || 'Achievements'} ({unlockedAchievements.length}/
               {achievements.length})
@@ -425,24 +427,24 @@ export default function ProgressPanel({ lang, uiState, onClose }: ProgressPanelP
                     key={achievement.id}
                     className={`p-4 rounded-xl border transition-all ${
                       isUnlocked
-                        ? 'bg-stone-800/50 border-yellow-500/30'
-                        : 'bg-stone-950/50 border-stone-800 opacity-50'
+                        ? 'border-canopy-sap/50 bg-canopy-raised'
+                        : 'border-canopy-line bg-canopy-bg'
                     }`}
                   >
                     <div className="flex items-start gap-3">
                       <div
-                        className={`p-2 rounded-lg ${isUnlocked ? 'bg-yellow-500/20' : 'bg-stone-800'}`}
+                        className={`rounded-lg p-2 ${isUnlocked ? 'bg-canopy-sap/20' : 'bg-canopy-raised'}`}
                       >
                         {isUnlocked ? (
                           achievement.icon
                         ) : (
-                          <Lock className="w-5 h-5 text-stone-400" />
+                          <Lock className="h-5 w-5 text-canopy-muted" />
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <span
-                            className={`font-bold ${isUnlocked ? 'text-stone-100' : 'text-stone-400'}`}
+                            className={`font-semibold ${isUnlocked ? 'text-canopy-text' : 'text-canopy-muted'}`}
                           >
                             {String(
                               t[lang][achievement.titleKey as keyof TranslationSet]
@@ -451,7 +453,7 @@ export default function ProgressPanel({ lang, uiState, onClose }: ProgressPanelP
                           </span>
                           {isUnlocked && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
                         </div>
-                        <p className="text-xs text-stone-400 mt-1">
+                        <p className="text-xs text-canopy-muted mt-1">
                           {String(
                             t[lang][achievement.descriptionKey as keyof TranslationSet]
                               || 'Achievement description',
@@ -467,20 +469,20 @@ export default function ProgressPanel({ lang, uiState, onClose }: ProgressPanelP
 
           {/* Milestones */}
           <section>
-            <h3 className="text-lg font-bold text-stone-300 mb-4 flex items-center gap-2">
+            <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-canopy-text">
               <Target className="w-5 h-5 text-emerald-400" />
               {t[lang].milestones || 'Next Milestones'}
             </h3>
             <div className="space-y-3">
               {uiState.wave < 50 && (
-                <div className="bg-stone-950 rounded-xl p-4 border border-stone-800">
+                <div className="rounded-xl border border-canopy-line bg-canopy-bg p-4">
                   <div className="flex justify-between items-center mb-2">
-                    <span className="text-stone-300 font-bold">
+                    <span className="font-semibold text-canopy-text">
                       {t[lang].milestoneWave50 || 'Reach Wave 50'}
                     </span>
-                    <span className="text-stone-400 text-sm">{uiState.wave}/50</span>
+                    <span className="text-sm text-canopy-muted">{uiState.wave}/50</span>
                   </div>
-                  <div className="h-2 bg-stone-900 rounded-full overflow-hidden">
+                  <div className="h-2 overflow-hidden rounded-full bg-canopy-panel">
                     <div
                       className="h-full bg-emerald-500 transition-all"
                       style={{ width: `${(uiState.wave / 50) * 100}%` }}
@@ -489,14 +491,14 @@ export default function ProgressPanel({ lang, uiState, onClose }: ProgressPanelP
                 </div>
               )}
               {uiState.plant.level < 50 && (
-                <div className="bg-stone-950 rounded-xl p-4 border border-stone-800">
+                <div className="rounded-xl border border-canopy-line bg-canopy-bg p-4">
                   <div className="flex justify-between items-center mb-2">
-                    <span className="text-stone-300 font-bold">
+                    <span className="font-semibold text-canopy-text">
                       {t[lang].milestonePlant50 || 'Reach Plant Level 50'}
                     </span>
-                    <span className="text-stone-400 text-sm">{uiState.plant.level}/50</span>
+                    <span className="text-sm text-canopy-muted">{uiState.plant.level}/50</span>
                   </div>
-                  <div className="h-2 bg-stone-900 rounded-full overflow-hidden">
+                  <div className="h-2 overflow-hidden rounded-full bg-canopy-panel">
                     <div
                       className="h-full bg-cyan-500 transition-all"
                       style={{ width: `${(uiState.plant.level / 50) * 100}%` }}
@@ -505,29 +507,29 @@ export default function ProgressPanel({ lang, uiState, onClose }: ProgressPanelP
                 </div>
               )}
               {uiState.resets < 1 && (
-                <div className="bg-stone-950 rounded-xl p-4 border border-stone-800">
+                <div className="rounded-xl border border-canopy-line bg-canopy-bg p-4">
                   <div className="flex justify-between items-center mb-2">
-                    <span className="text-stone-300 font-bold">
+                    <span className="font-semibold text-canopy-text">
                       {t[lang].milestoneFirstReset || 'First Prestige Reset'}
                     </span>
-                    <span className="text-stone-400 text-sm">{t[lang].locked || 'Locked'}</span>
+                    <span className="text-sm text-canopy-muted">{t[lang].locked || 'Locked'}</span>
                   </div>
-                  <p className="text-xs text-stone-400">
+                  <p className="text-xs text-canopy-muted">
                     {t[lang].milestoneFirstResetDesc || 'Reach Wave 50 or Plant Level 50 to unlock'}
                   </p>
                 </div>
               )}
               {unlockedAchievements.length < achievements.length && (
-                <div className="bg-stone-950 rounded-xl p-4 border border-stone-800">
+                <div className="rounded-xl border border-canopy-line bg-canopy-bg p-4">
                   <div className="flex justify-between items-center mb-2">
-                    <span className="text-stone-300 font-bold">
+                    <span className="font-semibold text-canopy-text">
                       {t[lang].milestoneAllAchievements || 'Complete All Achievements'}
                     </span>
-                    <span className="text-stone-400 text-sm">
+                    <span className="text-sm text-canopy-muted">
                       {unlockedAchievements.length}/{achievements.length}
                     </span>
                   </div>
-                  <div className="h-2 bg-stone-900 rounded-full overflow-hidden">
+                  <div className="h-2 overflow-hidden rounded-full bg-canopy-panel">
                     <div
                       className="h-full bg-yellow-500 transition-all"
                       style={{
@@ -538,14 +540,21 @@ export default function ProgressPanel({ lang, uiState, onClose }: ProgressPanelP
                 </div>
               )}
             </div>
+            {uiState.wave >= 50
+              && uiState.plant.level >= 50
+              && uiState.resets >= 1
+              && unlockedAchievements.length >= achievements.length && (
+                <EmptyState title={t[lang].milestones} body={uiText(t[lang], 'milestonesClear')} />
+              )}
           </section>
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-stone-800 bg-stone-950/50">
+        <div className="border-t border-canopy-line bg-canopy-bg/80 p-4">
           <button
+            type="button"
             onClick={onClose}
-            className="w-full py-3 bg-stone-800 hover:bg-stone-700 text-stone-200 rounded-xl font-bold transition-colors"
+            className="min-h-11 w-full rounded-xl bg-canopy-raised font-semibold text-canopy-text hover:border-canopy-leaf"
           >
             {t[lang].close || 'Close'}
           </button>
