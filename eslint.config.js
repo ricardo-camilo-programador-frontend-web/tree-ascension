@@ -8,7 +8,7 @@ import tseslint from 'typescript-eslint'
 export default tseslint.config(
   // Base ignores
   {
-    ignores: ['dist/**', 'node_modules/**', 'coverage/**', '*.config.*'],
+    ignores: ['dist/**', 'node_modules/**', 'coverage/**', '*.config.*', 'public/**'],
   },
 
   // Base JS + TS recommendations

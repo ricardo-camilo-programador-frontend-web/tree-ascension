@@ -225,6 +225,20 @@ export type TranslationSet = {
   evolutionDescriptions: Record<EvolutionId, string>
   waveComplete: string
   moringa: MoringaTranslations
+  ui?: {
+    onboarding: string
+    gotIt: string
+    noEvolutions: string
+    milestonesClear: string
+    loading: string
+    errorTitle: string
+    errorBody: string
+    reload: string
+    language: string
+    solLocked: string
+    adLoading: string
+    adError: string
+  }
 }
 
 export type Translations = {
