@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#0c0a09" />
+    <meta name="theme-color" content="#07140f" />
     <meta name="description" content="Idle Tower Defense - A 2D incremental idle tower defense game" />
     <link rel="icon" type="image/png" href="/icon.png" />
     <link rel="apple-touch-icon" href="/icon.png" />
@@ -16,17 +16,41 @@
     <meta property="og:image" content="https://rc-tree-ascension.netlify.app/icon.png" />
     <meta name="twitter:card" content="summary" />
     <title>Tree Ascension — Idle Tower Defense</title>
-    
-    <!-- Google AdSense Verification -->
-    <meta name="google-adsense-account" content="ca-pub-6735039970151788">
-    
-    <!-- Google AdSense -->
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6735039970151788" crossorigin="anonymous"></script>
+    <meta name="google-adsense-account" content="ca-pub-6735039970151788" />
+    <style>
+      :root { color-scheme: dark; }
+      html, body { margin: 0; height: 100%; background: #07140f; color: #f3f7f1; }
+      body { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; }
+      #root { flex: 1; min-height: 0; }
+      .skip-link { position: absolute; left: 8px; top: 8px; transform: translateY(-150%); background: #ffe08a; color: #1c1406; padding: 8px 12px; border-radius: 10px; z-index: 20; }
+      .skip-link:focus { transform: none; }
+      .mast { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 8px 12px; background: #10241b; border-bottom: 1px solid #3d6b52; }
+      .mast-brand { min-width: 10rem; }
+      .mast-kicker { margin: 0; font: 600 11px/1.2 ui-sans-serif, system-ui, sans-serif; letter-spacing: 0.16em; text-transform: uppercase; color: #c9ddd0; }
+      .mast h1 { margin: 0; font-family: Palatino, "Palatino Linotype", Georgia, serif; font-size: 2.15rem; line-height: 1; font-weight: 700; color: #f3f7f1; }
+      #hud-slot { flex: 1 1 16rem; min-width: 0; }
+    </style>
   </head>
   <body>
+    <a class="skip-link" href="#game">Skip to game</a>
+    <header class="mast">
+      <div class="mast-brand">
+        <p class="mast-kicker">Idle tower defense</p>
+        <h1>Tree Ascension</h1>
+      </div>
+      <div id="hud-slot"></div>
+    </header>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script src="/rc-study-modal.js" defer></script>
-</body>
+    <script>
+      window.addEventListener('load', function () {
+        var script = document.createElement('script')
+        script.async = true
+        script.crossOrigin = 'anonymous'
+        script.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6735039970151788'
+        document.head.appendChild(script)
+      })
+    </script>
+  </body>
 </html>
-

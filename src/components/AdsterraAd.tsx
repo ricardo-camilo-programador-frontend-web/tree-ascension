@@ -1,6 +1,8 @@
 import type React from 'react'
 import { useEffect, useRef, useState } from 'react'
 import { detectAdBlock, IS_ADS_ENABLED, loadAdsterraScript, logAdsterra } from '../ads/adsterra'
+import { type Language, t } from '../i18n'
+import { uiText } from '../i18n/ui-text'
 
 interface AdsterraAdProps {
   zone: string
@@ -21,6 +23,7 @@ export default function AdsterraAd({
   lazy = false,
   fallback,
 }: AdsterraAdProps) {
+  const shellRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const [hasError, setHasError] = useState(false)
   const [isVisible, setIsVisible] = useState(!lazy)
@@ -29,16 +32,20 @@ export default function AdsterraAd({
   useEffect(() => {
     if (!IS_ADS_ENABLED) return
 
-    detectAdBlock().then(isBlocked => {
-      if (isBlocked) {
-        setAdBlockActive(true)
+    void detectAdBlock()
+      .then(isBlocked => {
+        if (isBlocked) {
+          setAdBlockActive(true)
+          setHasError(true)
+        }
+      })
+      .catch(() => {
         setHasError(true)
-      }
-    })
+      })
   }, [])
 
   useEffect(() => {
-    if (!lazy || !containerRef.current || adBlockActive || !IS_ADS_ENABLED) return
+    if (!lazy || !shellRef.current || adBlockActive || !IS_ADS_ENABLED) return
 
     const observer = new IntersectionObserver(
       entries => {
@@ -50,7 +57,7 @@ export default function AdsterraAd({
       { rootMargin: '200px' },
     )
 
-    observer.observe(containerRef.current)
+    observer.observe(shellRef.current)
 
     return () => observer.disconnect()
   }, [lazy, adBlockActive])
@@ -107,25 +114,42 @@ export default function AdsterraAd({
 
   if (!IS_ADS_ENABLED) return null
 
+  const language = (document.documentElement.lang || 'en') as Language
+  const copy = t[language] ?? t.en
+  const frameStyle = { width: '100%', maxWidth: width, minHeight: height }
+
   return (
     <div
-      className={`adsterra-container flex flex-col items-center justify-center bg-stone-900/30 border border-stone-800/50 rounded-lg overflow-hidden ${className}`}
-      style={{ minWidth: width, minHeight: height }}
-      ref={containerRef}
+      ref={shellRef}
+      className={`adsterra-container w-full max-w-full ${className}`}
+      style={{ maxWidth: width }}
     >
       {hasError ? (
         fallback ? (
           fallback
         ) : (
-          <div className="text-stone-400 text-xs text-center p-4 flex flex-col items-center justify-center w-full h-full">
-            <span className="opacity-70">Advertisement</span>
-            <span className="text-[10px] opacity-40 mt-1">
-              (Please disable AdBlock to support us)
-            </span>
+          <div
+            role="alert"
+            className="flex items-center justify-center rounded-lg border border-canopy-line bg-canopy-bg px-3 text-center text-xs text-canopy-muted"
+            style={frameStyle}
+          >
+            {uiText(copy, 'adError')}
           </div>
         )
+      ) : !isVisible ? (
+        <div
+          role="status"
+          className="flex items-center justify-center rounded-lg border border-canopy-line bg-canopy-bg text-xs text-canopy-muted"
+          style={frameStyle}
+        >
+          {uiText(copy, 'adLoading')}
+        </div>
       ) : (
-        <div className="w-full h-full flex items-center justify-center" />
+        <div
+          className="overflow-hidden rounded-lg border border-canopy-line bg-canopy-bg"
+          style={frameStyle}
+          ref={containerRef}
+        />
       )}
     </div>
   )
